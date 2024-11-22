@@ -10,3 +10,7 @@ Still work in progress. Meant to be used in many projects, from
 rewrite in Go.
 
 ## Licence
+
+The
+[BSD 3 Clause licence](https://github.com/Projeto-Pindorama/libcmon?tab=License-1-ov-file),
+but the authors also request that this project is used for good, not evil.
