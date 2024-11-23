@@ -1,3 +1,15 @@
+/*
+ * bass/walk.go - Some hip functions for walking through
+ * file pointers and making 'em into []byte(s).
+ * Ain't you ever seen a walking bass?
+ * 
+ * Copyright (C) 2024: Pindorama
+ *		Luiz Antônio Rangel (takusuman)
+ *
+ * SPDX-Licence-Identifier: BSD-3-Clause 
+ *
+ */
+
 package bass
 
 import ( 
