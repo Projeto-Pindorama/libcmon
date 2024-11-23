@@ -1,3 +1,14 @@
+/*
+ * dsks/diskinfo.go - Collect disk information (Linux-specific for now).
+ * This is (currently) a mess.
+ * 
+ * Copyright (C) 2024: Pindorama
+ *		Luiz Antônio Rangel (takusuman)
+ *
+ * SPDX-Licence-Identifier: BSD-3-Clause 
+ *
+ */
+
 package dsks
 
 import (
@@ -5,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	)
 
 type DiskInfo struct {
@@ -34,16 +46,21 @@ type blocklen struct {
 	end uint64
 }
 
+var partitions []PartitionInfo
+
+func init() {
+	var err error
+	partitions, err = GetPartitionList()
+	if err != nil {
+		panic(err)		
+	}
+}
+
 /* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
 /* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
 func GetAllDisksInfo() ([]DiskInfo, error) {
 	var disks []DiskInfo
-	partitions, err := GetPartitionList()
-	if err != nil {
-		return nil, err
-	}
-
-	diskpaths := GetSysDisksPath(partitions)
+	diskpaths := GetSysDisksPath()
 
 	for d := 0; d < len(diskpaths); d++ {
 		diskinfo, err := GetDiskInfo(diskpaths[d])
@@ -63,12 +80,12 @@ func GetAllDisksInfo() ([]DiskInfo, error) {
 	return disks, nil
 }
 
-func GetSysDisksPath(partlist []PartitionInfo) ([]string){
+func GetSysDisksPath() ([]string){
 	var disks []string
 
-	for p := 0; p < len(partlist); p++ {
-		devpath := ("/dev/" + partlist[p].name)
-		if IsEntireDisk(partlist, devpath) {
+	for p := 0; p < len(partitions); p++ {
+		devpath := ("/dev/" + partitions[p].name)
+		if IsEntireDisk(devpath) {
 			disks = append(disks, devpath)
 		}
 	}
@@ -84,18 +101,23 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 		return nil, err
 	}
 
-	/* Get block device name for the disk. */
+	/* 
+	 * Get block device name and
+	 * dev_t numbers for the disk. 
+	 */
 	devblk := filepath.Base(devpath)
 
-	/* Make "/sys/block/<block name>" string. */
+	/* Make "/sys/block/<block name>" and "/sys/block/<m>:<n>" strings. */
 	sys_block := ("/sys/block/" + devblk)
-
+	
 	/* Get disk's model name. */
 	modelfi, _ := os.Open((sys_block + "/device/model"))
 	_modelname, err := bass.WalkTil('\n', modelfi)
 	modelname := string(_modelname)
 	modelfi.Close()
 
+	blocks, _ := GetDiskSubBlocks(devpath)
+	
 	return &DiskInfo{
 		devpath: devpath,
 		nsectors: 0,
@@ -103,18 +125,55 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 		modelname: modelname,
 		labeltype: "",
 		identifier: "",
-		blocks: []BlockInfo{},
+		blocks: blocks,
 		}, nil
 }
 
-func GetBlockInfo(blkpath string) (*BlockInfo, error) {
-	var err error
-	err = nil
-	return &BlockInfo{}, err 
+func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
+	var dskparts []BlockInfo
+
+	devno := GetDev_TForBlock(devpath)
+	syspath := fmt.Sprintf("/sys/dev/block/%d:%d",
+			devno.major, devno.minor)
+	entries, err := os.ReadDir(syspath)
+	if err != nil {
+		return nil, err
+	}
+
+	for e := 0; e < len(entries); e++ {
+		fname := filepath.Base(entries[e].Name())
+		itmatches, _ := regexp.MatchString(".*[0-9](|p[0-9])", fname)
+		if (itmatches) {
+			blkinfo, err := GetBlockInfo(("/dev/" + fname))
+			if err != nil {
+				return nil, err
+			}
+			dskparts = append(dskparts, *blkinfo)
+		}
+	}
+
+	return dskparts, nil
 }
 
-func IsEntireDisk(partlist []PartitionInfo, devpath string) (bool) {
-	devno := GetDev_TForBlock(partlist, devpath)
+func GetBlockInfo(blkpath string) (*BlockInfo, error) {
+	devno := GetDev_TForBlock(blkpath)
+
+ 	return &BlockInfo{
+		blkpath,
+		false,
+		blocklen{},
+		0,
+		0,
+		0,
+		"",
+		"",
+		Dev_T{
+		devno.major,
+		devno.minor}}, nil 
+}
+
+func IsEntireDisk(devpath string) (bool) {
+	devno := GetDev_TForBlock(devpath)
 	/*
 	 * That's sort of empirical, but a entire disk
 	 * located at /sys/block won't have a
@@ -130,13 +189,14 @@ func IsEntireDisk(partlist []PartitionInfo, devpath string) (bool) {
 	 return false
 }
 
-func GetDev_TForBlock(partlist []PartitionInfo, devpath string) (*Dev_T) {
+func GetDev_TForBlock(devpath string) (*Dev_T) {
 	devblk := filepath.Base(devpath)
 	
-	for b := 0; b < len(partlist); b++ {
-		if devblk == partlist[b].name	{
-			return &partlist[b].Dev_T
+	for b := 0; b < len(partitions); b++ {
+		if devblk == partitions[b].name	{
+			return &partitions[b].Dev_T
 		}
 	}
 	return &Dev_T{}
 }
+
