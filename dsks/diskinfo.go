@@ -1,6 +1,7 @@
 package dsks
 
 import (
+	"pindorama.net.br/libcmon/bass"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,6 +34,8 @@ type blocklen struct {
 	end uint64
 }
 
+/* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
+/* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
 func GetAllDisksInfo() ([]DiskInfo, error) {
 	var disks []DiskInfo
 	partitions, err := GetPartitionList()
@@ -75,19 +78,29 @@ func GetSysDisksPath(partlist []PartitionInfo) ([]string){
 
 
 func GetDiskInfo(devpath string) (*DiskInfo, error) {
-	stat, err := os.Stat(devpath)
+//	stat, err := os.Stat(devpath)
+	var err error
 	if err != nil {
 		return nil, err
 	}
 
-	/* Debug. */
-	fmt.Printf("%+v\n", stat)
+	/* Get block device name for the disk. */
+	devblk := filepath.Base(devpath)
+
+	/* Make "/sys/block/<block name>" string. */
+	sys_block := ("/sys/block/" + devblk)
+
+	/* Get disk's model name. */
+	modelfi, _ := os.Open((sys_block + "/device/model"))
+	_modelname, err := bass.WalkTil('\n', modelfi)
+	modelname := string(_modelname)
+	modelfi.Close()
 
 	return &DiskInfo{
 		devpath: devpath,
 		nsectors: 0,
 		nbytes: 0,
-		modelname: "", /* /sys/block/<basename /dev/xxx>/device/model */
+		modelname: modelname,
 		labeltype: "",
 		identifier: "",
 		blocks: []BlockInfo{},
@@ -127,6 +140,3 @@ func GetDev_TForBlock(partlist []PartitionInfo, devpath string) (*Dev_T) {
 	}
 	return &Dev_T{}
 }
-
-/* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
-/* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
