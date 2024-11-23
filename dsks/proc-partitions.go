@@ -1,10 +1,10 @@
 /*
  * dsks/proc-partitions.go - parse Linux's /proc/partitions as a Go struct.
- * 
+ *
  * Copyright (C) 2024: Pindorama
  *		Luiz Antônio Rangel (takusuman)
  *
- * SPDX-Licence-Identifier: BSD-3-Clause 
+ * SPDX-Licence-Identifier: BSD-3-Clause
  *
  */
 
@@ -17,8 +17,8 @@ import (
 )
 
 type Dev_T struct {
-	major  uint
-	minor  uint
+	major uint
+	minor uint
 }
 
 type PartitionInfo struct {

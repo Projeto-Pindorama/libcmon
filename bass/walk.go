@@ -2,19 +2,19 @@
  * bass/walk.go - Some hip functions for walking through
  * file pointers and making 'em into []byte(s).
  * Ain't you ever seen a walking bass?
- * 
+ *
  * Copyright (C) 2024: Pindorama
  *		Luiz Antônio Rangel (takusuman)
  *
- * SPDX-Licence-Identifier: BSD-3-Clause 
+ * SPDX-Licence-Identifier: BSD-3-Clause
  *
  */
 
 package bass
 
-import ( 
-	"os"
+import (
 	"io"
+	"os"
 )
 
 func Walk(f *os.File, to int) ([]byte, error) {
@@ -24,13 +24,13 @@ func Walk(f *os.File, to int) ([]byte, error) {
 coda:
 	for ; to != 0; to-- {
 		_, err := f.Read(buf)
-	 	switch (err) {
-			case nil:
-				b = append(b, buf[0])
-			case io.EOF:
-				break coda
-			default:
-				return nil, err
+		switch err {
+		case nil:
+			b = append(b, buf[0])
+		case io.EOF:
+			break coda
+		default:
+			return nil, err
 		}
 	}
 	return b, nil
@@ -50,6 +50,6 @@ func WalkTil(here byte, f *os.File) ([]byte, error) {
 			break
 		}
 	}
-	
+
 	return b, nil
 }
