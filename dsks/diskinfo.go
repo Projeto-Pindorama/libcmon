@@ -20,24 +20,24 @@ import (
 )
 
 type DiskInfo struct {
-	devpath    string
-	nsectors   uint
-	nbytes     uint
-	modelname  string
-	labeltype  string
-	identifier string
-	blocks     []BlockInfo
+	DevPath    string
+	NSectors   uint
+	NBytes     uint
+	ModelName  string
+	LabelType  string
+	Identifier string
+	Blocks     []BlockInfo
 }
 
 type BlockInfo struct {
-	device   string
-	boot     bool
-	length   blocklen
-	nsectors uint
-	size     uint
-	id       int
-	uuid     string
-	fstype   string
+	Device   string
+	IsBoot   bool
+	Length   blocklen
+	NSectors uint
+	Size     uint
+	Id       int
+	UUID     string
+	FSType   string
 	Dev_T
 }
 
@@ -69,13 +69,13 @@ func GetAllDisksInfo() ([]DiskInfo, error) {
 		}
 		disks = append(disks,
 			DiskInfo{
-				diskinfo.devpath,
-				diskinfo.nsectors,
-				diskinfo.nbytes,
-				diskinfo.modelname,
-				diskinfo.labeltype,
-				diskinfo.identifier,
-				diskinfo.blocks})
+				diskinfo.DevPath,
+				diskinfo.NSectors,
+				diskinfo.NBytes,
+				diskinfo.ModelName,
+				diskinfo.LabelType,
+				diskinfo.Identifier,
+				diskinfo.Blocks})
 	}
 	return disks, nil
 }
@@ -84,7 +84,7 @@ func GetSysDisksPath() []string {
 	var disks []string
 
 	for p := 0; p < len(partitions); p++ {
-		devpath := ("/dev/" + partitions[p].name)
+		devpath := ("/dev/" + partitions[p].Name)
 		if IsEntireDisk(devpath) {
 			disks = append(disks, devpath)
 		}
@@ -118,13 +118,13 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	blocks, _ := GetDiskSubBlocks(devpath)
 
 	return &DiskInfo{
-		devpath:    devpath,
-		nsectors:   0,
-		nbytes:     0,
-		modelname:  modelname,
-		labeltype:  "",
-		identifier: "",
-		blocks:     blocks,
+		devpath,
+		0,
+		0,
+		modelname,
+		"",
+		"",
+		blocks,
 	}, nil
 }
 
@@ -133,7 +133,7 @@ func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 
 	devno := GetDev_TForBlock(devpath)
 	syspath := fmt.Sprintf("/sys/dev/block/%d:%d",
-		devno.major, devno.minor)
+		devno.Major, devno.Minor)
 	entries, err := os.ReadDir(syspath)
 	if err != nil {
 		return nil, err
@@ -141,6 +141,11 @@ func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 
 	for e := 0; e < len(entries); e++ {
 		fname := filepath.Base(entries[e].Name())
+		/*
+		 * Check for a name that follows the block name convention of
+		 * <name><partition number>, with the loop device edge-case
+		 * of "loop<disk number>p<partition number>".
+		 */
 		itmatches, _ := regexp.MatchString(".*[0-9](|p[0-9])", fname)
 		if itmatches {
 			blkinfo, err := GetBlockInfo(("/dev/" + fname))
@@ -167,8 +172,8 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 		"",
 		"",
 		Dev_T{
-			devno.major,
-			devno.minor}}, nil
+			devno.Major,
+			devno.Minor}}, nil
 }
 
 func IsEntireDisk(devpath string) bool {
@@ -181,7 +186,7 @@ func IsEntireDisk(devpath string) bool {
 	 */
 	_, err := os.Stat(fmt.Sprintf(
 		"/sys/dev/block/%d:%d/partition",
-		devno.major, devno.minor))
+		devno.Major, devno.Minor))
 	if os.IsNotExist(err) {
 		return true
 	}
@@ -192,7 +197,7 @@ func GetDev_TForBlock(devpath string) *Dev_T {
 	devblk := filepath.Base(devpath)
 
 	for b := 0; b < len(partitions); b++ {
-		if devblk == partitions[b].name {
+		if devblk == partitions[b].Name {
 			return &partitions[b].Dev_T
 		}
 	}

@@ -17,14 +17,14 @@ import (
 )
 
 type Dev_T struct {
-	major uint
-	minor uint
+	Major uint
+	Minor uint
 }
 
 type PartitionInfo struct {
 	Dev_T
-	blocks uint64
-	name   string
+	Blocks uint64
+	Name   string
 }
 
 func GetPartitionList() ([]PartitionInfo, error) {
@@ -48,10 +48,10 @@ func GetPartitionList() ([]PartitionInfo, error) {
 				partitions = append(partitions,
 					PartitionInfo{
 						Dev_T{
-							partinfo.major,
-							partinfo.minor},
-						partinfo.blocks,
-						partinfo.name})
+							partinfo.Major,
+							partinfo.Minor},
+						partinfo.Blocks,
+						partinfo.Name})
 			}
 		default:
 			return nil, err
