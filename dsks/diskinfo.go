@@ -30,14 +30,14 @@ type DiskInfo struct {
 }
 
 type BlockInfo struct {
-	Device   string
-	IsBoot   bool
-	Length   blocklen
-	NSectors uint
-	Size     uint
-	Id       int
-	UUID     string
-	FSType   string
+	Device     string
+	IsBootable bool
+	Length     blocklen
+	NSectors   uint
+	Size       uint
+	Id         int
+	UUID       string
+	FSType     string
 	Dev_T
 }
 
@@ -50,14 +50,18 @@ var partitions []PartitionInfo
 
 func init() {
 	var err error
+
+	/*
+	 * If we could not read /proc/partitions,
+	 * I think we would be a little bit more
+	 * in trouble to recover.
+	 */
 	partitions, err = GetPartitionList()
 	if err != nil {
 		panic(err)
 	}
 }
 
-/* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
-/* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
 func GetAllDisksInfo() ([]DiskInfo, error) {
 	var disks []DiskInfo
 	diskpaths := GetSysDisksPath()
@@ -99,15 +103,8 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	/*
-	 * Get block device name and
-	 * dev_t numbers for the disk.
-	 */
-	devblk := filepath.Base(devpath)
-
-	/* Make "/sys/block/<block name>" and "/sys/block/<m>:<n>" strings. */
-	sys_block := ("/sys/block/" + devblk)
+	vfspath := MakeVFSBlockPaths(devpath)
+	sys_block := vfspath["sysblock"]
 
 	/* Get disk's model name. */
 	modelfi, _ := os.Open((sys_block + "/device/model"))
@@ -115,6 +112,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	modelname := string(_modelname)
 	modelfi.Close()
 
+	/* Get disk's BlockInfo{} slice. */
 	blocks, _ := GetDiskSubBlocks(devpath)
 
 	return &DiskInfo{
@@ -131,14 +129,18 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 	var dskparts []BlockInfo
 
-	devno := GetDev_TForBlock(devpath)
-	syspath := fmt.Sprintf("/sys/dev/block/%d:%d",
-		devno.Major, devno.Minor)
+	/* Open /sys/block/<dev>. */
+	vfspath := MakeVFSBlockPaths(devpath)
+	syspath := vfspath["sysdevblock"]
 	entries, err := os.ReadDir(syspath)
 	if err != nil {
-		return nil, err
+		return []BlockInfo{}, err
 	}
 
+	/*
+	 * Search for blocks. Just as in IsEntireDisk(), this is sort
+	 * of empirical, but there's no better way of doing it.
+	 */
 	for e := 0; e < len(entries); e++ {
 		fname := filepath.Base(entries[e].Name())
 		/*
@@ -150,7 +152,7 @@ func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 		if itmatches {
 			blkinfo, err := GetBlockInfo(("/dev/" + fname))
 			if err != nil {
-				return nil, err
+				return []BlockInfo{}, err
 			}
 			dskparts = append(dskparts, *blkinfo)
 		}
@@ -161,6 +163,15 @@ func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 
 func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 	devno := GetDev_TForBlock(blkpath)
+
+	/*
+	 * Check if the block is actually listed at /proc/partitions.
+	 */
+	if *devno == (Dev_T{}) {
+		err := fmt.Errorf("could not find dev_t numbers for %s at %s",
+			blkpath, "/proc/partitions")
+		return &BlockInfo{}, err
+	}
 
 	return &BlockInfo{
 		blkpath,
@@ -177,16 +188,15 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 }
 
 func IsEntireDisk(devpath string) bool {
-	devno := GetDev_TForBlock(devpath)
+	vfspath := MakeVFSBlockPaths(devpath)
+
 	/*
 	 * That's sort of empirical, but a entire disk
 	 * located at /sys/block won't have a
 	 * "partition" file on it, ergo it could tell
 	 * us if the block is an entire disk or not.
 	 */
-	_, err := os.Stat(fmt.Sprintf(
-		"/sys/dev/block/%d:%d/partition",
-		devno.Major, devno.Minor))
+	_, err := os.Stat((vfspath["sysdevblock"] + "/partition"))
 	if os.IsNotExist(err) {
 		return true
 	}
@@ -202,4 +212,20 @@ func GetDev_TForBlock(devpath string) *Dev_T {
 		}
 	}
 	return &Dev_T{}
+}
+
+func MakeVFSBlockPaths(devpath string) map[string]string {
+	vfspath := make(map[string]string)
+	devno := GetDev_TForBlock(devpath)
+	devblk := filepath.Base(devpath)
+
+	/*
+	 * Make "/sys/block/<name>" and
+	 * "/sys/dev/block/<m>:<n>" strings.
+	 */
+	vfspath["sysblock"] = ("/sys/block/" + devblk)
+	vfspath["sysdevblock"] = fmt.Sprintf("/sys/dev/block/%d:%d",
+		devno.Major, devno.Minor)
+
+	return vfspath
 }
