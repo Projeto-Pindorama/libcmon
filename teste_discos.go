@@ -7,6 +7,6 @@ import (
 /* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
 /* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
 func main() {
-	disks, _ := dsks.GetAllDisksInfo()
-	fmt.Printf("%v\n", disks)
+	disks, err := dsks.GetAllDisksInfo()
+	fmt.Printf("%+v\n%v\n", disks, err)
 }

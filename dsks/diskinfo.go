@@ -14,6 +14,7 @@ package dsks
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"path/filepath"
 	"pindorama.net.br/libcmon/bass"
 	"regexp"
@@ -21,7 +22,7 @@ import (
 
 type DiskInfo struct {
 	DevPath    string
-	NSectors   uint
+	NSectors   uint64
 	NBytes     uint
 	ModelName  string
 	LabelType  string
@@ -33,7 +34,7 @@ type BlockInfo struct {
 	Device     string
 	IsBootable bool
 	Length     blocklen
-	NSectors   uint
+	NSectors   uint64
 	Size       uint
 	Id         int
 	UUID       string
@@ -108,16 +109,21 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 
 	/* Get disk's model name. */
 	modelfi, _ := os.Open((sys_block + "/device/model"))
-	_modelname, err := bass.WalkTil('\n', modelfi)
+	_modelname, _, err := bass.WalkTil('\n', modelfi)
 	modelname := string(_modelname)
 	modelfi.Close()
 
+	nsectors, err := GetBlockNSectors(devpath)
+
 	/* Get disk's BlockInfo{} slice. */
-	blocks, _ := GetDiskSubBlocks(devpath)
+	blocks, err := GetDiskSubBlocks(devpath)
+	if err != nil {
+		return &DiskInfo{}, err
+	}
 
 	return &DiskInfo{
 		devpath,
-		0,
+		nsectors,
 		0,
 		modelname,
 		"",
@@ -172,12 +178,17 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 			blkpath, "/proc/partitions")
 		return &BlockInfo{}, err
 	}
+	
+	nsectors, err := GetBlockNSectors(blkpath)
+	if err != nil {
+		return &BlockInfo{}, err
+	}
 
 	return &BlockInfo{
 		blkpath,
 		false,
 		blocklen{},
-		0,
+		nsectors,
 		0,
 		0,
 		"",
@@ -201,6 +212,24 @@ func IsEntireDisk(devpath string) bool {
 		return true
 	}
 	return false
+}
+
+func GetBlockNSectors(devpath string) (uint64, error) {
+	vfspath := MakeVFSBlockPaths(devpath)
+
+	/* Open /sys/dev/block/m:n/size. */
+	fi, err := os.Open((vfspath["sysdevblock"] + "/size"))
+	defer fi.Close()
+	if err != nil {
+		return 0, err
+	}
+
+	s, _, err := bass.WalkTil('\n', fi)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseUint(string(s), 0, 64)
 }
 
 func GetDev_TForBlock(devpath string) *Dev_T {
