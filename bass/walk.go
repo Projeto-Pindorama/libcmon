@@ -17,12 +17,13 @@ import (
 	"os"
 )
 
-func Walk(f *os.File, to int) ([]byte, error) {
+func Walk(f *os.File, to int) ([]byte, int, error) {
+	var r int
 	var b []byte
 	buf := make([]byte, 1)
 
 coda:
-	for ; to != 0; to-- {
+	for r = 0; to != 0; to, r = (to - 1), (r + 1) {
 		_, err := f.Read(buf)
 		switch err {
 		case nil:
@@ -30,20 +31,21 @@ coda:
 		case io.EOF:
 			break coda
 		default:
-			return nil, err
+			return nil, 0, err
 		}
 	}
-	return b, nil
+	return b, r, nil
 }
 
-func WalkTil(here byte, f *os.File) ([]byte, error) {
+func WalkTil(here byte, f *os.File) ([]byte, int, error) {
 	var b []byte
-	bb, err := Walk(f, -1)
+	var i int
+	bb, _, err := Walk(f, -1)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	for i := 0; i < len(bb); i++ {
+	for i = 0; i < len(bb); i++ {
 		if bb[i] != here {
 			b = append(b, bb[i])
 		} else {
@@ -51,5 +53,5 @@ func WalkTil(here byte, f *os.File) ([]byte, error) {
 		}
 	}
 
-	return b, nil
+	return b, i, nil
 }
