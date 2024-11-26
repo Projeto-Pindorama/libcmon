@@ -142,7 +142,7 @@ func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 	 * of empirical, but there's no better way of doing it.
 	 */
 	for e := 0; e < len(entries); e++ {
-		fname := filepath.Base(entries[e].Name())
+		fname := entries[e].Name()
 		/*
 		 * Check for a name that follows the block name convention of
 		 * <name><partition number>, with the loop device edge-case
@@ -237,20 +237,30 @@ func GetUUIDForBlock(devpath string) string {
 		return ""
 	}
 
+	disk_by_uuid_path := "/dev/disk/by-uuid/"
 	devblk := filepath.Base(devpath)
-	entries, _ := os.ReadDir("/dev/disk/by-uuid/")
+	entries, _ := os.ReadDir(disk_by_uuid_path)
 
 	for e := 0; e < len(entries); e++ {
-		devpath_per_uuid_path, err := os.Readlink(entries[e].Name())
-		fmt.Printf("readlink err: %v\n", err)
-		devblk_per_uuid_path := filepath.Base(devpath_per_uuid_path)
+		/*
+		 * os.ReadDir() actually returns the base name
+		 * as entry's .Name(), so we must amend the
+		 * "/dev/disk/by-uuid" directory before it.
+		 */
+		devpath_per_uuid_path, _ :=
+			os.Readlink((disk_by_uuid_path + entries[e].Name()))
+		devblk_per_uuid_path :=
+			filepath.Base(devpath_per_uuid_path)
+
+		/* Then check if the block device name matches. */
 		if devblk == devblk_per_uuid_path {
-			fmt.Printf("devblk per UUID: %s\ndevblk: %s\n", devblk_per_uuid_path, devblk)
-			uuid := filepath.Base(entries[e].Name())
+			uuid := entries[e].Name()
 			return uuid
 		}
 	}
-	return "" /* Not found. */
+
+	/* Not found case. */
+	return ""
 }
 
 func GetDiskModelName(devpath string) (string, error) {
