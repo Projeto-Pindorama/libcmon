@@ -73,15 +73,15 @@ func Strncmp(s1, s2 string, upto uint) bool {
 }
 
 func Strcmp(s1, s2 string) bool {
-	/* 
+	/*
 	 * Using strings.Compare() instead of implementing
 	 * manually because of the optmizations made per
 	 * the Go crew.
 	 */
-	 r := strings.Compare(s1, s2)
+	r := strings.Compare(s1, s2)
 
-	 if r != 0 {
-		 return false
-	 }
-	 return true
+	if r != 0 {
+		return false
+	}
+	return true
 }
