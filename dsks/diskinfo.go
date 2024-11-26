@@ -34,7 +34,7 @@ type DiskInfo struct {
 type BlockInfo struct {
 	Device     string
 	IsBootable bool
-	Length     blocklen
+	Length     blockrange
 	NSectors   uint64
 	Size       uint
 	Id         int
@@ -43,7 +43,7 @@ type BlockInfo struct {
 	Dev_T
 }
 
-type blocklen struct {
+type blockrange struct {
 	start uint64
 	end   uint64
 }
@@ -178,12 +178,16 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 		return &BlockInfo{}, err
 	}
 
-	uuid := GetUUIDForBlock(blkpath)
+	/*
+	 * Not all blocks have UUIDs, so we will be
+	 * ignoring errors that may happen there.
+	 */
+	uuid, _ := GetUUIDForBlock(blkpath)
 
 	return &BlockInfo{
 		blkpath,
 		false,
-		blocklen{},
+		blockrange{},
 		nsectors,
 		0,
 		0,
@@ -204,10 +208,7 @@ func IsEntireDisk(devpath string) bool {
 	 * us if the block is an entire disk or not.
 	 */
 	_, err := os.Stat((vfspath["sysdevblock"] + "/partition"))
-	if os.IsNotExist(err) {
-		return true
-	}
-	return false
+	return os.IsNotExist(err)
 }
 
 func GetBlockNSectors(devpath string) (uint64, error) {
@@ -228,13 +229,13 @@ func GetBlockNSectors(devpath string) (uint64, error) {
 	return strconv.ParseUint(string(s), 0, 64)
 }
 
-func GetUUIDForBlock(devpath string) string {
+func GetUUIDForBlock(devpath string) (string, error) {
 	if IsEntireDisk(devpath) {
 		/*
 		 * There is no UUID for
 		 * an entire disk.
 		 */
-		return ""
+		return "", nil
 	}
 
 	disk_by_uuid_path := "/dev/disk/by-uuid/"
@@ -247,30 +248,33 @@ func GetUUIDForBlock(devpath string) string {
 		 * as entry's .Name(), so we must amend the
 		 * "/dev/disk/by-uuid" directory before it.
 		 */
-		devpath_per_uuid_path, _ :=
+		devpath_per_uuid_path, err :=
 			os.Readlink((disk_by_uuid_path + entries[e].Name()))
+		if err != nil {
+			return "", err
+		}
 		devblk_per_uuid_path :=
 			filepath.Base(devpath_per_uuid_path)
 
 		/* Then check if the block device name matches. */
 		if devblk == devblk_per_uuid_path {
 			uuid := entries[e].Name()
-			return uuid
+			return uuid, nil
 		}
 	}
 
 	/* Not found case. */
-	return ""
+	return "", fmt.Errorf("could not find UUID for %s", devpath)
 }
 
 func GetDiskModelName(devpath string) (string, error) {
 	devblk := filepath.Base(devpath)
 
+	/*
+	 * loop devices have no model name.
+	 * Despite this fact, shall not error.
+	 */
 	if bass.Strncmp(devblk, "loop", 4) {
-		/*
-		 * loop devices have no model name.
-		 * Despite this fact, shall not error.
-		 */
 		return "", nil
 	} else if !IsEntireDisk(devpath) {
 		return "", errors.New("single block devices do not have a model name.")
