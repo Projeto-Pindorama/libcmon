@@ -12,12 +12,13 @@
 package dsks
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"path/filepath"
 	"pindorama.net.br/libcmon/bass"
 	"regexp"
+	"strconv"
 )
 
 type DiskInfo struct {
@@ -104,16 +105,9 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	vfspath := MakeVFSBlockPaths(devpath)
-	sys_block := vfspath["sysblock"]
-
-	/* Get disk's model name. */
-	modelfi, _ := os.Open((sys_block + "/device/model"))
-	_modelname, _, err := bass.WalkTil('\n', modelfi)
-	modelname := string(_modelname)
-	modelfi.Close()
 
 	nsectors, err := GetBlockNSectors(devpath)
+	modelname, err := GetDiskModelName(devpath)
 
 	/* Get disk's BlockInfo{} slice. */
 	blocks, err := GetDiskSubBlocks(devpath)
@@ -178,11 +172,13 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 			blkpath, "/proc/partitions")
 		return &BlockInfo{}, err
 	}
-	
+
 	nsectors, err := GetBlockNSectors(blkpath)
 	if err != nil {
 		return &BlockInfo{}, err
 	}
+
+	uuid := GetUUIDForBlock(blkpath)
 
 	return &BlockInfo{
 		blkpath,
@@ -191,7 +187,7 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 		nsectors,
 		0,
 		0,
-		"",
+		uuid,
 		"",
 		Dev_T{
 			devno.Major,
@@ -230,6 +226,56 @@ func GetBlockNSectors(devpath string) (uint64, error) {
 	}
 
 	return strconv.ParseUint(string(s), 0, 64)
+}
+
+func GetUUIDForBlock(devpath string) string {
+	if IsEntireDisk(devpath) {
+		/*
+		 * There is no UUID for
+		 * an entire disk.
+		 */
+		return ""
+	}
+
+	devblk := filepath.Base(devpath)
+	entries, _ := os.ReadDir("/dev/disk/by-uuid/")
+
+	for e := 0; e < len(entries); e++ {
+		devpath_per_uuid_path, err := os.Readlink(entries[e].Name())
+		fmt.Printf("readlink err: %v\n", err)
+		devblk_per_uuid_path := filepath.Base(devpath_per_uuid_path)
+		if devblk == devblk_per_uuid_path {
+			fmt.Printf("devblk per UUID: %s\ndevblk: %s\n", devblk_per_uuid_path, devblk)
+			uuid := filepath.Base(entries[e].Name())
+			return uuid
+		}
+	}
+	return "" /* Not found. */
+}
+
+func GetDiskModelName(devpath string) (string, error) {
+	devblk := filepath.Base(devpath)
+
+	if bass.Strncmp(devblk, "loop", 4) {
+		/*
+		 * loop devices have no model name.
+		 * Despite this fact, shall not error.
+		 */
+		return "", nil
+	} else if !IsEntireDisk(devpath) {
+		return "", errors.New("single block devices do not have a model name.")
+	}
+
+	vfspath := MakeVFSBlockPaths(devpath)
+	modelfi, err := os.Open((vfspath["sysblock"] + "/device/model"))
+	if err != nil {
+		return "", err
+	}
+
+	modelname, _, err := bass.WalkTil('\n', modelfi)
+	modelfi.Close()
+
+	return string(modelname), nil
 }
 
 func GetDev_TForBlock(devpath string) *Dev_T {
