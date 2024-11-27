@@ -1,4 +1,5 @@
 # libcmon
+[![Go Reference](https://pkg.go.dev/badge/pindorama.net.br/libcmon.svg)](https://pkg.go.dev/pindorama.net.br/libcmon)
 
 ## What is it?
 
