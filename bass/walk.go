@@ -13,15 +13,38 @@
 package bass
 
 import (
+	"errors"
 	"io"
 	"os"
 	"strings"
 )
 
-func Walk(f *os.File, to int) ([]byte, int, error) {
-	var r int
+func Walk(f *os.File, pos ...int64) ([]byte, int64, error) {
+	var r int64
 	var b []byte
 	buf := make([]byte, 1)
+
+	if len(pos) < 1 {
+		return nil, 0,
+			errors.New("Walk() requires at least one point to go.")
+	} else if len(pos) >= 2 {
+		/* Place to walk from. */
+		from := pos[1]
+
+		/* Move the reader to the place in question. */
+		p, err := f.Seek(from, 0)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		/*
+		 * Since 'r' is the number of bytes
+		 * walked  through in total, sum
+		 * where we're walking from.
+		 */
+		r += p
+	}
+	to := pos[0]
 
 coda:
 	for r = 0; to != 0; to, r = (to - 1), (r + 1) {
