@@ -30,8 +30,6 @@ func Walk(f *os.File, pos ...int64) ([]byte, int64, error) {
 	} else if len(pos) >= 2 {
 		/* Place to walk from. */
 		from := pos[1]
-
-		/* Move the reader to the place in question. */
 		p, err := f.Seek(from, 0)
 		if err != nil {
 			return nil, 0, err
