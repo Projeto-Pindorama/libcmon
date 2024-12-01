@@ -17,14 +17,17 @@ import (
 	"os"
 	"path/filepath"
 	"pindorama.net.br/libcmon/bass"
+	"pindorama.net.br/libcmon/porcelana"
+	"reflect"
 	"regexp"
 	"strconv"
 )
 
 type DiskInfo struct {
-	DevPath    string
-	NSectors   uint64
-	NBytes     uint
+	DevPath  string
+	NSectors uint64
+	NBytes   uint
+	QueueLimits
 	ModelName  string
 	LabelType  string
 	Identifier string
@@ -41,6 +44,11 @@ type BlockInfo struct {
 	UUID       string
 	FSType     string
 	Dev_T
+}
+
+type QueueLimits struct {
+	physical_block_size uint8
+	logical_block_size  uint8
 }
 
 type blockrange struct {
@@ -78,6 +86,7 @@ func GetAllDisksInfo() ([]DiskInfo, error) {
 				diskinfo.DevPath,
 				diskinfo.NSectors,
 				diskinfo.NBytes,
+				diskinfo.QueueLimits,
 				diskinfo.ModelName,
 				diskinfo.LabelType,
 				diskinfo.Identifier,
@@ -114,11 +123,13 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	if err != nil {
 		return &DiskInfo{}, err
 	}
+	qlim, err := GetDiskQueueLimits(devpath)
 
 	return &DiskInfo{
 		devpath,
 		nsectors,
 		0,
+		*qlim,
 		modelname,
 		"",
 		"",
@@ -211,6 +222,38 @@ func IsEntireDisk(devpath string) bool {
 	return os.IsNotExist(err)
 }
 
+func GetDiskQueueLimits(devpath string) (*QueueLimits, error) {
+	vfspath := MakeVFSBlockPaths(devpath)
+	queuedir := (vfspath["sysblock"] + "/queue/")
+	lim := QueueLimits{}
+	v := reflect.ValueOf(&lim)
+
+out:
+	for q := 0; q < reflect.Indirect(v).NumField(); q++ {
+		e := v.Elem().Field(q)
+		switch iw := prcl.IntWidth(e.Kind()); iw {
+		default:
+			name := v.Type().Field(q).Name
+			qpath := (queuedir + name)
+			fi, err := os.Open(qpath)
+			if err != nil {
+				return &QueueLimits{}, err
+			}
+			s, _, _ := bass.WalkTil('\n', fi)
+			x, err := strconv.ParseUint(string(s), 0, iw)
+			if err != nil {
+				return &QueueLimits{}, err
+			}
+			e.SetUint(x)
+			fi.Close()
+		case -1:
+			break out /* Just in case. */
+		}
+	}
+
+	return &lim, nil
+}
+
 func GetBlockNSectors(devpath string) (uint64, error) {
 	vfspath := MakeVFSBlockPaths(devpath)
 
@@ -230,14 +273,6 @@ func GetBlockNSectors(devpath string) (uint64, error) {
 }
 
 func GetUUIDForBlock(devpath string) (string, error) {
-	if IsEntireDisk(devpath) {
-		/*
-		 * There is no UUID for
-		 * an entire disk.
-		 */
-		return "", nil
-	}
-
 	disk_by_uuid_path := "/dev/disk/by-uuid/"
 	devblk := filepath.Base(devpath)
 	entries, _ := os.ReadDir(disk_by_uuid_path)
