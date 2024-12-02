@@ -21,12 +21,13 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type DiskInfo struct {
 	DevPath  string
 	NSectors uint64
-	NBytes   uint
+	NBytes   uint64
 	QueueLimits
 	ModelName  string
 	LabelType  string
@@ -47,8 +48,8 @@ type BlockInfo struct {
 }
 
 type QueueLimits struct {
-	physical_block_size uint8
-	logical_block_size  uint8
+	Physical_Block_Size uint16
+	Logical_Block_Size  uint16
 }
 
 type blockrange struct {
@@ -124,11 +125,15 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 		return &DiskInfo{}, err
 	}
 	qlim, err := GetDiskQueueLimits(devpath)
+	nbytes := (uint64(qlim.Logical_Block_Size) * nsectors)
+	if err != nil {
+		return &DiskInfo{}, err
+	}
 
 	return &DiskInfo{
 		devpath,
 		nsectors,
-		0,
+		nbytes,
 		*qlim,
 		modelname,
 		"",
@@ -225,33 +230,33 @@ func IsEntireDisk(devpath string) bool {
 func GetDiskQueueLimits(devpath string) (*QueueLimits, error) {
 	vfspath := MakeVFSBlockPaths(devpath)
 	queuedir := (vfspath["sysblock"] + "/queue/")
-	lim := QueueLimits{}
-	v := reflect.ValueOf(&lim)
+	lim := &QueueLimits{}
+	v := reflect.Indirect(reflect.ValueOf(lim))
 
-out:
-	for q := 0; q < reflect.Indirect(v).NumField(); q++ {
-		e := v.Elem().Field(q)
-		switch iw := prcl.IntWidth(e.Kind()); iw {
+	for q := 0; q < v.NumField(); q++ {
+		e := v.Field(q)
+		intw := prcl.IntWidth(e.Kind())
+		switch intw {
 		default:
-			name := v.Type().Field(q).Name
+			name := strings.ToLower(v.Type().Field(q).Name)
 			qpath := (queuedir + name)
 			fi, err := os.Open(qpath)
 			if err != nil {
 				return &QueueLimits{}, err
 			}
 			s, _, _ := bass.WalkTil('\n', fi)
-			x, err := strconv.ParseUint(string(s), 0, iw)
+			x, err := strconv.ParseUint(string(s), 0, intw)
 			if err != nil {
 				return &QueueLimits{}, err
 			}
-			e.SetUint(x)
+			v.Field(q).SetUint(x)
 			fi.Close()
 		case -1:
-			break out /* Just in case. */
+			break
 		}
 	}
 
-	return &lim, nil
+	return lim, nil
 }
 
 func GetBlockNSectors(devpath string) (uint64, error) {
