@@ -79,18 +79,11 @@ func WalkTil(here byte, f *os.File) ([]byte, int, error) {
 }
 
 func Strncmp(s1, s2 string, upto uint) bool {
-	var i uint
-
 	if (uint(len(s1)) < upto) || (uint(len(s2)) < upto) {
 		return false
 	}
 
-	for i = 0; i < upto; i++ {
-		if s1[i] != s2[i] {
-			return false
-		}
-	}
-	return true
+	return Strcmp(s1[:upto], s2[:upto])
 }
 
 func Strcmp(s1, s2 string) bool {
