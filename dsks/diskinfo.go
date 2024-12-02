@@ -17,11 +17,8 @@ import (
 	"os"
 	"path/filepath"
 	"pindorama.net.br/libcmon/bass"
-	"pindorama.net.br/libcmon/porcelana"
-	"reflect"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 type DiskInfo struct {
@@ -45,11 +42,6 @@ type BlockInfo struct {
 	UUID       string
 	FSType     string
 	Dev_T
-}
-
-type QueueLimits struct {
-	Physical_Block_Size uint16
-	Logical_Block_Size  uint16
 }
 
 type blockrange struct {
@@ -193,6 +185,7 @@ func GetBlockInfo(blkpath string, blksize uint16) (*BlockInfo, error) {
 	 * ignoring errors that may happen there.
 	 */
 	uuid, _ := GetUUIDForBlock(blkpath)
+	_, err = CanItBoot(blkpath)
 
 	return &BlockInfo{
 		blkpath,
@@ -219,38 +212,6 @@ func IsEntireDisk(devpath string) bool {
 	 */
 	_, err := os.Stat((vfspath["sysdevblock"] + "/partition"))
 	return os.IsNotExist(err)
-}
-
-func GetDiskQueueLimits(devpath string) (*QueueLimits, error) {
-	vfspath := MakeVFSBlockPaths(devpath)
-	queuedir := (vfspath["sysblock"] + "/queue/")
-	lim := &QueueLimits{}
-	v := reflect.Indirect(reflect.ValueOf(lim))
-
-	for q := 0; q < v.NumField(); q++ {
-		e := v.Field(q)
-		intw := prcl.IntWidth(e.Kind())
-		switch intw {
-		default:
-			name := strings.ToLower(v.Type().Field(q).Name)
-			qpath := (queuedir + name)
-			fi, err := os.Open(qpath)
-			if err != nil {
-				return &QueueLimits{}, err
-			}
-			s, _, _ := bass.WalkTil('\n', fi)
-			x, err := strconv.ParseUint(string(s), 0, intw)
-			if err != nil {
-				return &QueueLimits{}, err
-			}
-			v.Field(q).SetUint(x)
-			fi.Close()
-		case -1:
-			break
-		}
-	}
-
-	return lim, nil
 }
 
 func GetBlockNSectors(devpath string) (uint64, error) {
@@ -326,29 +287,15 @@ func GetDiskModelName(devpath string) (string, error) {
 	return string(modelname), nil
 }
 
-func GetDev_TForBlock(devpath string) *Dev_T {
-	devblk := filepath.Base(devpath)
-
-	for b := 0; b < len(partitions); b++ {
-		if devblk == partitions[b].Name {
-			return &partitions[b].Dev_T
-		}
+func CanItBoot(devpath string) (bool, error) {
+	fi, err := os.Open(devpath)
+	if err != nil {
+		return false, err
 	}
-	return &Dev_T{}
-}
+	defer fi.Close()
 
-func MakeVFSBlockPaths(devpath string) map[string]string {
-	vfspath := make(map[string]string)
-	devno := GetDev_TForBlock(devpath)
-	devblk := filepath.Base(devpath)
-
-	/*
-	 * Make "/sys/block/<name>" and
-	 * "/sys/dev/block/<m>:<n>" strings.
-	 */
-	vfspath["sysblock"] = ("/sys/block/" + devblk)
-	vfspath["sysdevblock"] = fmt.Sprintf("/sys/dev/block/%d:%d",
-		devno.Major, devno.Minor)
-
-	return vfspath
+	bytes, _, err := bass.Walk(fi, 512)
+	/* Mock code. */
+	fmt.Printf("Bloco %s\nOctetos: %v\nRepresentação hexadecimal: %x\n", devpath, bytes, bytes)
+	return true, nil
 }
