@@ -40,7 +40,7 @@ type BlockInfo struct {
 	IsBootable bool
 	Length     blockrange
 	NSectors   uint64
-	Size       uint
+	Size       uint64
 	Id         int
 	UUID       string
 	FSType     string
@@ -111,21 +111,15 @@ func GetSysDisksPath() []string {
 
 func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	//	stat, err := os.Stat(devpath)
-	var err error
-	if err != nil {
-		return nil, err
-	}
-
 	nsectors, err := GetBlockNSectors(devpath)
 	modelname, err := GetDiskModelName(devpath)
-
-	/* Get disk's BlockInfo{} slice. */
-	blocks, err := GetDiskSubBlocks(devpath)
+	qlim, err := GetDiskQueueLimits(devpath)
+	nbytes := (uint64(qlim.Logical_Block_Size) * nsectors)
 	if err != nil {
 		return &DiskInfo{}, err
 	}
-	qlim, err := GetDiskQueueLimits(devpath)
-	nbytes := (uint64(qlim.Logical_Block_Size) * nsectors)
+	/* Get disk's BlockInfo{} slice. */
+	blocks, err := GetDiskSubBlocks(devpath, qlim.Logical_Block_Size)
 	if err != nil {
 		return &DiskInfo{}, err
 	}
@@ -142,7 +136,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	}, nil
 }
 
-func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
+func GetDiskSubBlocks(devpath string, blksize uint16) ([]BlockInfo, error) {
 	var dskparts []BlockInfo
 
 	/* Open /sys/block/<dev>. */
@@ -166,7 +160,7 @@ func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 		 */
 		itmatches, _ := regexp.MatchString(".*[0-9](|p[0-9])", fname)
 		if itmatches {
-			blkinfo, err := GetBlockInfo(("/dev/" + fname))
+			blkinfo, err := GetBlockInfo(("/dev/" + fname), blksize)
 			if err != nil {
 				return []BlockInfo{}, err
 			}
@@ -177,7 +171,7 @@ func GetDiskSubBlocks(devpath string) ([]BlockInfo, error) {
 	return dskparts, nil
 }
 
-func GetBlockInfo(blkpath string) (*BlockInfo, error) {
+func GetBlockInfo(blkpath string, blksize uint16) (*BlockInfo, error) {
 	devno := GetDev_TForBlock(blkpath)
 
 	/*
@@ -193,7 +187,7 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 	if err != nil {
 		return &BlockInfo{}, err
 	}
-
+	size := (uint64(blksize) * nsectors)
 	/*
 	 * Not all blocks have UUIDs, so we will be
 	 * ignoring errors that may happen there.
@@ -205,7 +199,7 @@ func GetBlockInfo(blkpath string) (*BlockInfo, error) {
 		false,
 		blockrange{},
 		nsectors,
-		0,
+		size,
 		0,
 		uuid,
 		"",
