@@ -102,14 +102,26 @@ func GetSysDisksPath() []string {
 }
 
 func GetDiskInfo(devpath string) (*DiskInfo, error) {
-	//	stat, err := os.Stat(devpath)
 	nsectors, err := GetBlockNSectors(devpath)
-	modelname, err := GetDiskModelName(devpath)
 	qlim, err := GetDiskQueueLimits(devpath)
 	nbytes := (uint64(qlim.Logical_Block_Size) * nsectors)
+	modelname, err := GetDiskModelName(devpath)
 	if err != nil {
 		return &DiskInfo{}, err
 	}
+	label, _ := IsMBRorGPT(devpath)
+	labeltype := "unknown"
+	switch label {
+	case MBR:
+		labeltype = "dos"
+		break
+	case GPT:
+		labeltype = "gpt"
+		break
+	case Unknown:
+		break
+	}
+
 	/* Get disk's BlockInfo{} slice. */
 	blocks, err := GetDiskSubBlocks(devpath, qlim.Logical_Block_Size)
 	if err != nil {
@@ -122,7 +134,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 		nbytes,
 		*qlim,
 		modelname,
-		"",
+		labeltype,
 		"",
 		blocks,
 	}, nil
@@ -185,11 +197,11 @@ func GetBlockInfo(blkpath string, blksize uint16) (*BlockInfo, error) {
 	 * ignoring errors that may happen there.
 	 */
 	uuid, _ := GetUUIDForBlock(blkpath)
-	_, err = CanItBoot(blkpath)
+	bootable, err := CanItBoot(blkpath)
 
 	return &BlockInfo{
 		blkpath,
-		false,
+		bootable,
 		blockrange{},
 		nsectors,
 		size,
@@ -285,17 +297,4 @@ func GetDiskModelName(devpath string) (string, error) {
 	modelfi.Close()
 
 	return string(modelname), nil
-}
-
-func CanItBoot(devpath string) (bool, error) {
-	fi, err := os.Open(devpath)
-	if err != nil {
-		return false, err
-	}
-	defer fi.Close()
-
-	bytes, _, err := bass.Walk(fi, 512)
-	/* Mock code. */
-	fmt.Printf("Bloco %s\nOctetos: %v\nRepresentação hexadecimal: %x\n", devpath, bytes, bytes)
-	return true, nil
 }
