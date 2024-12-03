@@ -79,11 +79,11 @@ func WalkTil(here byte, f *os.File) ([]byte, int, error) {
 }
 
 func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, int64, error) {
-	var n, thitherward, nstep int64
+	var n, stop, nstep int64
 	nstep = int64(len(this))
 	found := false
 	n = 0
-	thitherward = -1
+	stop = -1
 
 	/*
 	 * Just like bass.Walk() itself, we can set from
@@ -100,17 +100,17 @@ func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, int64, error
 		 * present after the said place.
 		 */
 		if places >= 2 {
-			thitherward = place[1]
+			stop = place[1]
 		}
 	}
 
 exit:
 	for ; !found; n++ {
 		/* Check if it arrived to the limit, if any. */
-		if (thitherward == 0) {
+		if stop == 0 {
 			break exit
 		}
-		thitherward--
+		stop--
 
 		b, _, err := Walk(at, nstep, n)
 		if err != nil {
@@ -124,8 +124,8 @@ exit:
 			 * the correct number of "binary places" Walk()ed
 			 * pass-by.
 			 */
-			 n--
-			 n += nstep
+			n--
+			n += nstep
 		}
 	}
 
