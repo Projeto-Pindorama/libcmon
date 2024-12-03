@@ -13,23 +13,23 @@
 package bass
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"os"
-	"strings"
 )
 
-func Walk(f *os.File, pos ...int64) ([]byte, int64, error) {
+func Walk(f *os.File, place ...int64) ([]byte, int64, error) {
 	var r int64
 	var b []byte
 	buf := make([]byte, 1)
 
-	if len(pos) < 1 {
+	if len(place) < 1 {
 		return nil, 0,
 			errors.New("Walk() requires at least one point to go.")
-	} else if len(pos) >= 2 {
+	} else if len(place) >= 2 {
 		/* Place to walk from. */
-		from := pos[1]
+		from := place[1]
 		p, err := f.Seek(from, 0)
 		if err != nil {
 			return nil, 0, err
@@ -37,12 +37,12 @@ func Walk(f *os.File, pos ...int64) ([]byte, int64, error) {
 
 		/*
 		 * Since 'r' is the number of bytes
-		 * walked  through in total, sum
+		 * walked through in total, sum
 		 * where we're walking from.
 		 */
 		r += p
 	}
-	to := pos[0]
+	to := place[0]
 
 coda:
 	for r = 0; to != 0; to, r = (to - 1), (r + 1) {
@@ -78,6 +78,41 @@ func WalkTil(here byte, f *os.File) ([]byte, int, error) {
 	return b, i, nil
 }
 
+func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, int64, error) {
+	var n, nstep int64
+	nstep = int64(len(this))
+	found := false
+
+	/*
+	 * Just like bass.Walk() itself, we can set from
+	 * whence we want to start Walk()ing, saving some
+	 * CPU cycles and I/O accesses.
+	 */
+	if len(place) > 0 {
+		n += place[0]
+	}
+
+	for n = 0; !found; n++ {
+		b, _, err := Walk(at, nstep, n)
+		if err != nil {
+			return false, n, err
+		}
+
+		if (bytes.Compare(this, b)) == 0 {
+			found = true
+			/*
+			 * Some funky arithmetic I discovered for returning
+			 * the correct number of "binary places" Walk()ed
+			 * pass-by.
+			 */
+			n--
+			n += nstep
+		}
+	}
+
+	return found, n, nil
+}
+
 func Strncmp(s1, s2 string, upto uint) bool {
 	if (uint(len(s1)) < upto) || (uint(len(s2)) < upto) {
 		return false
@@ -88,14 +123,10 @@ func Strncmp(s1, s2 string, upto uint) bool {
 
 func Strcmp(s1, s2 string) bool {
 	/*
-	 * Using strings.Compare() instead of implementing
-	 * manually because of the optmizations made per
-	 * the Go crew.
+	 * As per 'go doc strings.Compare':
+	 * "It is usually clearer and always faster to use the
+	 * built-in string comparison operators ==, <, >, and so on".
 	 */
-	r := strings.Compare(s1, s2)
 
-	if r != 0 {
-		return false
-	}
-	return true
+	return (s1 == s2)
 }
