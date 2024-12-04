@@ -92,7 +92,7 @@ func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, int64, error
 	 */
 	places := len(place)
 	if places > 0 {
-		n += place[0]
+		stop = place[0]
 		/*
 		 * We can also set until where we want to go,
 		 * for avoiding reading a entire file if we
@@ -100,7 +100,7 @@ func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, int64, error
 		 * present after the said place.
 		 */
 		if places >= 2 {
-			stop = place[1]
+			n += place[1]
 		}
 	}
 
