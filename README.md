@@ -1,6 +1,8 @@
 # libcmon
 [![Go Reference](https://pkg.go.dev/badge/pindorama.net.br/libcmon.svg)](https://pkg.go.dev/pindorama.net.br/libcmon)
 
+## <img src="https://github.com/user-attachments/assets/ea106675-94e2-4a67-bbc6-c992e9159ac8" height=40> **WARNING**: This library is in W.I.P. state, the APIs may change during the development.
+
 ## What is it?
 
 C'mon (/kəˈmɔn/) is a general library for the Go Programming Language.  
