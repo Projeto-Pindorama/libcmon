@@ -13,22 +13,28 @@
 /* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
 /* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
 func main() {
-	fdiskfmt := "Disk %s: %f GiB, %d bytes, %d sectors\nDisk model: %s\nUnits: sectors of 1 * %d = %d\nSector size (logical/physical): %d bytes / %d bytes\nI/O size (minimum/optimal): %d bytes / %d bytes\nDisklabel type: %s\nDisk identifier: %s\n"
 	disks, _ := dsks.GetAllDisksInfo()
+
 	for d := 0; d < len(disks); d++ {
 		disk := disks[d]
-		fmt.Printf(fdiskfmt, disk.DevPath, (disk.NBytes / (1024*1024*1024)),
+		fmt.Printf(("Disk %s: %.1f GiB, %d bytes, %d sectors\nDisk model: %s\n" +
+		"Units: sectors of 1 * %d = %d\nSector size (logical/physical): %d / %d\n" +
+		"I/O size (minimum/optimal): %d bytes / %d bytes\n" +
+		"Disklabel type: %s\nDisk identifier: %s\n"),
+		disk.DevPath, (float32(disk.NBytes) / float32((1024*1024*1024))),
 		disk.NBytes, disk.NSectors, disk.ModelName,
 		disk.QueueLimits.Logical_Block_Size, disk.QueueLimits.Logical_Block_Size,
 		disk.QueueLimits.Logical_Block_Size, disk.QueueLimits.Physical_Block_Size,
 		0, 0,
 		disk.LabelType, disk.Identifier)
-		fmt.Printf("%s %10s %2s %5s %5s %5s\n", "Device", "Start", "End", "Sectors", "Size", "Type")
+		blknamsiz := len(disk.DevPath)
+		fmt.Printf("%*s Boot Start End   Sectors%10s  %10s\n", (blknamsiz + 1), "Device", "Size", "Type")
 		for b := 0; b < len(disk.Blocks); b++ {
 			block := disk.Blocks[b]
-			fmt.Printf("%s %5d %4d %5d %5d %5s\n",
-			block.Device, block.Range.Start, block.Range.End,
-				block.NSectors, block.Size, block.FSType)
+			fmt.Printf("%*s %v %d%5d%15d%15d  %s\n",
+			blknamsiz, block.Device, block.IsBootable,
+			block.Range.Start, block.Range.End,
+			block.NSectors, block.Size, block.FSType)
 		}
 	}
 }
