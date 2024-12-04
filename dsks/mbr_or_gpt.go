@@ -23,16 +23,17 @@ const (
 )
 
 func IsMBRorGPT(devpath string) (int, error) {
+	var err1, err2, err3 error
+	var found bool
 	mbr := map[string][]byte{
 		"general":    {85, 170},
 		"protective": {238},
 		"efi_part":   {69, 70, 73, 32, 80, 65, 82, 84},
 	}
-	var err1, err2, err3 error
 	fi, err := os.Open(devpath)
 	defer fi.Close()
 	if err != nil {
-		return Unknown, err
+		goto err
 	}
 
 	/*
@@ -42,7 +43,7 @@ func IsMBRorGPT(devpath string) (int, error) {
 	 * reason why we're going at 450 and reading 1 octet
 	 * from there.
 	 */
-	found, _, err1 :=
+	found, _, err1 =
 		bass.WalkLookinFor(mbr["protective"], fi, 1, 450)
 	switch found {
 	case false:
@@ -63,7 +64,7 @@ func IsMBRorGPT(devpath string) (int, error) {
 			case true:
 				return MBR, nil
 			case false:
-				return Unknown, nil
+				goto unknown
 			}
 		case true:
 			break
@@ -73,8 +74,10 @@ func IsMBRorGPT(devpath string) (int, error) {
 		return GPT, nil
 	}
 
+unknown:
 	err = errors.Join(err1,
 		err2, err3)
+err:
 	if err != nil {
 		return Unknown, err
 	}
