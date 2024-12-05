@@ -1,5 +1,5 @@
 /* 
- * fdisk-list.go - Test for dsks/.
+ * fdisk-list.go - Test for disks/.
  * Mimics util-linux fdisk's '-l' option.
  */
 
@@ -7,13 +7,13 @@
 
  import (
 	"fmt"
-	"pindorama.net.br/libcmon/dsks"
+	"pindorama.net.br/libcmon/disks"
 )
 
 /* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
 /* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
 func main() {
-	disks, _ := dsks.GetAllDisksInfo()
+	disks, _ := disks.GetAllDisksInfo()
 
 	for d := 0; d < len(disks); d++ {
 		disk := disks[d]

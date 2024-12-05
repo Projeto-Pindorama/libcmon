@@ -1,5 +1,5 @@
 /*
- * dsks/sys-blocks.go - Make VFS paths for collecting disk information.
+ * disks/sys-blocks.go - Make VFS paths for collecting disk information.
  * Linux-specific --- at least until some hip system decides to do it too.
  *
  * Copyright (C) 2024: Pindorama
@@ -9,7 +9,7 @@
  *
  */
 
-package dsks
+package disks
 
 import (
 	"fmt"

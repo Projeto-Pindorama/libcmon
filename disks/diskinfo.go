@@ -1,5 +1,5 @@
 /*
- * dsks/diskinfo.go - Collect disk information (Linux-specific for now).
+ * disks/diskinfo.go - Collect disk information (Linux-specific for now).
  * This is (currently) a mess.
  *
  * Copyright (C) 2024: Pindorama
@@ -9,7 +9,7 @@
  *
  */
 
-package dsks
+package disks
 
 import (
 	"errors"

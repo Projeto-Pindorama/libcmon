@@ -1,5 +1,5 @@
 /*
- * dsks/proc-partitions.go - parse Linux's /proc/partitions as a Go struct.
+ * disks/proc-partitions.go - parse Linux's /proc/partitions as a Go struct.
  *
  * Copyright (C) 2024: Pindorama
  *		Luiz Antônio Rangel (takusuman)
@@ -8,7 +8,7 @@
  *
  */
 
-package dsks
+package disks
 
 import (
 	"bufio"

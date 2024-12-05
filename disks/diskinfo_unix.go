@@ -1,5 +1,5 @@
 /*
- * dsks/diskinfo_unix.go - UNIX®-specific functions for
+ * disks/diskinfo_unix.go - UNIX®-specific functions for
  * collecting disk information.
  * I mean, you wouldn't use major and minor numbers at Windows.
  *
@@ -9,7 +9,7 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  *
  */
-package dsks
+package disks
 
 import "path/filepath"
 

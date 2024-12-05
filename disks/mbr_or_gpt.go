@@ -1,5 +1,5 @@
 /*
- * dsks/mbr_or_gpt.go - Check if disk is MBR or GPT.
+ * disks/mbr_or_gpt.go - Check if disk is MBR or GPT.
  *
  * Copyright (C) 2024: Pindorama
  *		Luiz Antônio Rangel (takusuman)
@@ -8,7 +8,7 @@
  *
  */
 
-package dsks
+package disks
 
 import (
 	"errors"
