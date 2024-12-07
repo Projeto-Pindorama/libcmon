@@ -51,8 +51,8 @@ func IsMBRorGPT(devpath string) (int, error) {
 		 * Do not have a protective MBR header,
 		 * search for "EFI PART".
 		 * Read from the LBA 0 (also know as
-		 * protective MBR) (512 bytes) plus
-		 * LBA 1 (8 bytes).
+		 * protective MBR) (512 octets) plus
+		 * LBA 1 (8 octets).
 		 */
 		found, _, err2 =
 			bass.WalkLookinFor(mbr["efi_part"], fi, (512 + 8), 0)
@@ -84,4 +84,3 @@ err:
 
 	return Unknown, nil
 }
-

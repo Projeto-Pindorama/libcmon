@@ -12,8 +12,8 @@
 package disks
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"pindorama.net.br/libcmon/bass"
@@ -39,7 +39,7 @@ func MakeVFSBlockPaths(devpath string) map[string]string {
 	devno := GetDev_TForBlock(devpath)
 	devblk := filepath.Base(devpath)
 
-	/* 
+	/*
 	 * Make "/sys/block/<name>" string
 	 * only if it is an entire block (or
 	 * if /sys/block/</dev block> actually

@@ -21,11 +21,11 @@ func GetPartType(blkpath string, label int) (string, error) {
 	var s string
 	var err error
 
-	switch (label) {
-		case MBR:
-			s, err = GetMBRPartType(blkpath)
-		case GPT:
-			s, err = GetGPTPartType(blkpath)
+	switch label {
+	case MBR:
+		s, err = GetMBRPartType(blkpath)
+	case GPT:
+		s, err = GetGPTPartType(blkpath)
 	}
 
 	return s, err

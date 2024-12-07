@@ -102,12 +102,12 @@ var MBRPartNames = map[byte]string{
 	MBR_SYRINX_PARTITION:               "Syrinx",
 	MBR_NONFS_DATA_PARTITION:           "Non-FS data",
 	MBR_CPM_CTOS_PARTITION:             "CP/M / CTOS / ...", /* CP/M or Concurrent CP/M or Concurrent DOS or CTOS */
-	MBR_DELL_UTILITY_PARTITION: "Dell Utility", /* Dell PowerEdge Server utilities */
-	MBR_BOOTIT_PARTITION:       "BootIt",       /* BootIt EMBRM */
-	MBR_DOS_ACCESS_PARTITION:   "DOS access",   /* DOS access or SpeedStor 12-bit FAT  extended partition */
-	MBR_DOS_RO_PARTITION:             "DOS R/O",   /* DOS R/O or SpeedStor */
-	MBR_SPEEDSTOR_EXTENDED_PARTITION: "SpeedStor", /* SpeedStor 16-bit FAT extended
-							* partition < 1024 cyl. */
+	MBR_DELL_UTILITY_PARTITION:         "Dell Utility",      /* Dell PowerEdge Server utilities */
+	MBR_BOOTIT_PARTITION:               "BootIt",            /* BootIt EMBRM */
+	MBR_DOS_ACCESS_PARTITION:           "DOS access",        /* DOS access or SpeedStor 12-bit FAT  extended partition */
+	MBR_DOS_RO_PARTITION:               "DOS R/O",           /* DOS R/O or SpeedStor */
+	MBR_SPEEDSTOR_EXTENDED_PARTITION:   "SpeedStor",         /* SpeedStor 16-bit FAT extended
+								  * partition < 1024 cyl. */
 
 	/* Linux https://www.freedesktop.org/wiki/Specifications/BootLoaderSpec/ */
 	MBR_RUFUS_EXTRA_PARTITION: "Linux extended boot",

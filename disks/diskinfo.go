@@ -35,7 +35,7 @@ type DiskInfo struct {
 type BlockInfo struct {
 	Device     string
 	IsBootable bool
-	Range     blockrange
+	Range      blockrange
 	NSectors   uint64
 	Size       uint64
 	Id         int

@@ -9,10 +9,12 @@
 
 package disks
 
-import "os"
-import "errors"
-import "strconv"
-import "pindorama.net.br/libcmon/bass"
+import (
+	"errors"
+	"os"
+	"pindorama.net.br/libcmon/bass"
+	"strconv"
+)
 
 func GetMBREntryForPart(blkpath string) (int64, error) {
 	vfspath := MakeVFSBlockPaths(blkpath)
@@ -37,7 +39,7 @@ func GetMBREntryForPart(blkpath string) (int64, error) {
 		 * payload if one decides to plainly ignore the
 		 * error.
 		 */
-		return 0, err 
+		return 0, err
 	}
 
 	/*
@@ -46,7 +48,7 @@ func GetMBREntryForPart(blkpath string) (int64, error) {
 	 * partition table.
 	 * The first partition starts at 0x1be (446),
 	 * and there's four until 0x1ee (494) divided
-	 * in intervals of 16 bytes for each one.
+	 * in intervals of 16 octets for each one.
 	 */
 	a := int64((npart * 0x10) + 0x1ae)
 
@@ -62,7 +64,7 @@ func CanItBoot(blkpath string) (bool, error) {
 	defer fi.Close()
 
 	entry, err3 := GetMBREntryForPart(blkpath)
- 	found, _, err4 := bass.WalkLookinFor(boot_octet, fi, 1, entry)
+	found, _, err4 := bass.WalkLookinFor(boot_octet, fi, 1, entry)
 
 	err := errors.Join(err1, err2, err3, err4)
 	if err != nil {
