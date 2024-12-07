@@ -11,12 +11,6 @@
 
 package disks
 
-import (
-	"errors"
-	"os"
-	"pindorama.net.br/libcmon/bass"
-)
-
 func GetPartType(blkpath string, label int) (string, error) {
 	var s string
 	var err error
@@ -29,28 +23,4 @@ func GetPartType(blkpath string, label int) (string, error) {
 	}
 
 	return s, err
-}
-
-func GetMBRPartType(blkpath string) (string, error) {
-	devpath, err1 := GetBlockMainDisk(blkpath)
-	fi, err2 := os.Open(devpath)
-	defer fi.Close()
-
-	entry, err3 := GetMBREntryForPart(blkpath)
-
-	/* Also known as 01?0 + 0x2, or 0x1?2. */
-	b, _, err4 := bass.Walk(fi, 1, (entry + 4))
-	err := errors.Join(err1, err2, err3, err4)
-	if err != nil {
-		return "", err
-	}
-	partname := MBRPartNames[b[0]]
-	if partname == "" {
-		partname = "Unknown"
-	}
-	return partname, nil
-}
-
-func GetGPTPartType(blkname string) (string, error) {
-	return "", errors.New("Not implemented (yet).")
 }
