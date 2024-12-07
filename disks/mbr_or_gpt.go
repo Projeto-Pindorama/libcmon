@@ -27,7 +27,7 @@ func IsMBRorGPT(devpath string) (int, error) {
 	var found bool
 	mbr := map[string][]byte{
 		"general":    {85, 170},
-		"protective": {238},
+		"protective": {MBR_GPT_PARTITION},
 		"efi_part":   {69, 70, 73, 32, 80, 65, 82, 84},
 	}
 	fi, err := os.Open(devpath)
