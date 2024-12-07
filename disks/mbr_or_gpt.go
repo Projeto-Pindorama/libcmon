@@ -85,16 +85,3 @@ err:
 	return Unknown, nil
 }
 
-/* Bogus; to be implemented. */
-func CanItBoot(devpath string) (bool, error) {
-	/*
-		 * fi, err := os.Open(devpath)
-		 * if err != nil {
-	 	 *	return false, err
-	 	 * }
-	 	 * defer fi.Close()
-		 *
-		 * bytes, _, err := bass.Walk(fi, 512)
-	*/
-	return false, nil
-}

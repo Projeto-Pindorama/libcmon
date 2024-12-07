@@ -13,6 +13,7 @@ package disks
 
 import (
 	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 	"pindorama.net.br/libcmon/bass"
@@ -40,9 +41,11 @@ func MakeVFSBlockPaths(devpath string) map[string]string {
 
 	/* 
 	 * Make "/sys/block/<name>" string
-	 * only if it is an entire block.
+	 * only if it is an entire block (or
+	 * if /sys/block/</dev block> actually
+	 * exists).
 	 */
-	if IsEntireDisk(devpath) {
+	if _, err := os.Stat(devpath); err == nil {
 		vfspath["sysblock"] = ("/sys/block/" + devblk)
 	}
 	vfspath["sysdevblock"] = fmt.Sprintf("/sys/dev/block/%d:%d",
@@ -64,12 +67,10 @@ func GetDiskQueueLimits(devpath string) (*QueueLimits, error) {
 		default:
 			name := strings.ToLower(v.Type().Field(q).Name)
 			qpath := (queuedir + name)
-			fi, err := os.Open(qpath)
-			if err != nil {
-				return &QueueLimits{}, err
-			}
-			s, _, _ := bass.WalkTil('\n', fi)
-			x, err := strconv.ParseUint(string(s), 0, intw)
+			fi, err1 := os.Open(qpath)
+			s, _, err2 := bass.WalkTil('\n', fi)
+			x, err3 := strconv.ParseUint(string(s), 0, intw)
+			err := errors.Join(err1, err2, err3)
 			if err != nil {
 				return &QueueLimits{}, err
 			}
@@ -85,8 +86,9 @@ func GetDiskQueueLimits(devpath string) (*QueueLimits, error) {
 
 func GetBlockMainDisk(blkpath string) (string, error) {
 	vfspath := MakeVFSBlockPaths(blkpath)
-	main_disk_sysdev, err :=
-		os.Readlink((vfspath["sysdevblock"] + "/../"))
+	real_sysdevblock, err1 := os.Readlink(vfspath["sysdevblock"])
+	main_disk_sysdev, err2 := filepath.Abs((real_sysdevblock + "/.."))
+	err := errors.Join(err1, err2)
 	if err != nil {
 		return "", err
 	}

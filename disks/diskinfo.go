@@ -123,7 +123,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	}
 
 	/* Get disk's BlockInfo{} slice. */
-	blocks, err := GetDiskSubBlocks(devpath, qlim.Logical_Block_Size)
+	blocks, err := GetDiskSubBlocks(devpath, qlim.Logical_Block_Size, label)
 	if err != nil {
 		return &DiskInfo{}, err
 	}
@@ -140,7 +140,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	}, nil
 }
 
-func GetDiskSubBlocks(devpath string, blksize uint16) ([]BlockInfo, error) {
+func GetDiskSubBlocks(devpath string, blksize uint16, label int) ([]BlockInfo, error) {
 	var dskparts []BlockInfo
 
 	/* Open /sys/block/<dev>. */
@@ -164,7 +164,7 @@ func GetDiskSubBlocks(devpath string, blksize uint16) ([]BlockInfo, error) {
 		 */
 		itmatches, _ := regexp.MatchString(".*[0-9](|p[0-9])", fname)
 		if itmatches {
-			blkinfo, err := GetBlockInfo(("/dev/" + fname), blksize)
+			blkinfo, err := GetBlockInfo(("/dev/" + fname), blksize, label)
 			if err != nil {
 				return []BlockInfo{}, err
 			}
@@ -175,7 +175,7 @@ func GetDiskSubBlocks(devpath string, blksize uint16) ([]BlockInfo, error) {
 	return dskparts, nil
 }
 
-func GetBlockInfo(blkpath string, blksize uint16) (*BlockInfo, error) {
+func GetBlockInfo(blkpath string, blksize uint16, label int) (*BlockInfo, error) {
 	devno := GetDev_TForBlock(blkpath)
 
 	/*
@@ -198,6 +198,7 @@ func GetBlockInfo(blkpath string, blksize uint16) (*BlockInfo, error) {
 	 */
 	uuid, _ := GetUUIDForBlock(blkpath)
 	bootable, err := CanItBoot(blkpath)
+	fstype, _ := GetPartType(blkpath, label)
 
 	return &BlockInfo{
 		blkpath,
@@ -207,7 +208,7 @@ func GetBlockInfo(blkpath string, blksize uint16) (*BlockInfo, error) {
 		size,
 		0,
 		uuid,
-		"",
+		fstype,
 		Dev_T{
 			devno.Major,
 			devno.Minor}}, nil
