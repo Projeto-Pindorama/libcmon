@@ -38,11 +38,13 @@ func MakeVFSBlockPaths(devpath string) map[string]string {
 	devno := GetDev_TForBlock(devpath)
 	devblk := filepath.Base(devpath)
 
-	/*
-	 * Make "/sys/block/<name>" and
-	 * "/sys/dev/block/<m>:<n>" strings.
+	/* 
+	 * Make "/sys/block/<name>" string
+	 * only if it is an entire block.
 	 */
-	vfspath["sysblock"] = ("/sys/block/" + devblk)
+	if IsEntireDisk(devpath) {
+		vfspath["sysblock"] = ("/sys/block/" + devblk)
+	}
 	vfspath["sysdevblock"] = fmt.Sprintf("/sys/dev/block/%d:%d",
 		devno.Major, devno.Minor)
 
@@ -79,4 +81,16 @@ func GetDiskQueueLimits(devpath string) (*QueueLimits, error) {
 	}
 
 	return lim, nil
+}
+
+func GetBlockMainDisk(blkpath string) (string, error) {
+	vfspath := MakeVFSBlockPaths(blkpath)
+	main_disk_sysdev, err :=
+		os.Readlink((vfspath["sysdevblock"] + "/../"))
+	if err != nil {
+		return "", err
+	}
+	main_disk := filepath.Base(main_disk_sysdev)
+
+	return ("/dev/" + main_disk), nil
 }
