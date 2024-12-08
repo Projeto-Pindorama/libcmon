@@ -12,6 +12,14 @@ Still work in progress. Meant to be used in many projects, from
 [pacote](https://github.com/Projeto-Pindorama/pacote) to the L.E.``mount``
 rewrite in Go.
 
+It provides the following functionality:
+
+* General file-to-``[]byte`` functions and ``str(n)cpy``(3) "replicas" available
+  at ``bass/``. The primitive is ``bass.Walk()``, the other ones are based on it;
+* Functions for collecting disk information at ``disks/``, also planned to write
+  on disks in the future;
+* General wrappers at ``porcelana/``.
+
 ## Licence
 
 The
