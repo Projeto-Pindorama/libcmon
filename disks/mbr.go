@@ -23,9 +23,8 @@ func GetMBREntryForPart(blkpath string) (int64, error) {
 
 	/*
 	 * Get only one character since we can't get any number
-	 * larger than 4 anyway for a legacy MBR disk anyway;
-	 * ergo, there's no necessity for walking until the
-	 * line break.
+	 * larger than 4 for a legacy MBR disk in any case; ergo,
+	 * there's no necessity for walking until the line break.
 	 */
 	bnpart, _, err2 := bass.Walk(fi, 1)
 	npart, err3 := strconv.Atoi(string(bnpart))
@@ -34,12 +33,13 @@ func GetMBREntryForPart(blkpath string) (int64, error) {
 	if err != nil {
 		/*
 		 * Since we're expecting to one use bass.Walk(),
-		 * we shall not return an negative number,
-		 * otherwise it would be triggering an unwanted
-		 * payload if one decides to plainly ignore the
-		 * error.
+		 * we shall return an negative number, so
+		 * os.Seek() will error out and the function
+		 * won't be doing nothing; otherwise it would
+		 * be triggering an unwanted payload if one
+		 * decides to plainly ignore the error.
 		 */
-		return 0, err
+		return -1, err
 	}
 
 	/*
