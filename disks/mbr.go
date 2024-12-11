@@ -5,6 +5,14 @@
  *		Luiz Antônio Rangel (takusuman)
  *
  * SPDX-Licence-Identifier: BSD-3-Clause
+ *
+ * Arithmetic at GetMBRDiskID() borrowed from util-linux's
+ * '__dos__assemble_4le()' inline function defined at the
+ * 'include/pt-mbr.h' file.
+ * From pt-mbr.h's copyright header:
+ *
+ * No copyright is claimed.  This code is in the public domain; do with
+ * it what you wish.
  */
 
 package disks
@@ -67,7 +75,6 @@ func GetMBRDiskID(devpath string) (uint32, error) {
 		return 0, err
 	}
 
-	/* From __dos__assemble_4le() at util-linux pt-mbr.h. */
 	return (uint32(ido[0]) |
 		(uint32(ido[1]) << 8) |
 		(uint32(ido[2]) << 16) |
