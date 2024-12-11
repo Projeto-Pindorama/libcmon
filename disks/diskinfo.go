@@ -102,15 +102,13 @@ func GetSysDisksPath() []string {
 }
 
 func GetDiskInfo(devpath string) (*DiskInfo, error) {
-	nsectors, err := GetBlockNSectors(devpath)
-	qlim, err := GetDiskQueueLimits(devpath)
+	nsectors, err1 := GetBlockNSectors(devpath)
+	qlim, err2 := GetDiskQueueLimits(devpath)
 	nbytes := (uint64(qlim.Logical_Block_Size) * nsectors)
-	modelname, err := GetDiskModelName(devpath)
-	if err != nil {
-		return &DiskInfo{}, err
-	}
-	label, _ := IsMBRorGPT(devpath)
+	modelname, err3 := GetDiskModelName(devpath)
+	label, err4 := IsMBRorGPT(devpath)
 	labeltype := "unknown"
+
 	switch label {
 	case MBR:
 		labeltype = "dos"
@@ -122,10 +120,15 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 		break
 	}
 
+	identifier, err5 := GetDiskIdentifier(devpath, label)
+
 	/* Get disk's BlockInfo{} slice. */
-	blocks, err := GetDiskSubBlocks(devpath, qlim.Logical_Block_Size, label)
+	blocks, err6 := GetDiskSubBlocks(devpath, qlim.Logical_Block_Size, label)
+
+	err := errors.Join(err1, err2, err3,
+				err4, err5, err6)
 	if err != nil {
-		return &DiskInfo{}, err
+		fmt.Printf("%v\n", err)
 	}
 
 	return &DiskInfo{
@@ -135,7 +138,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 		*qlim,
 		modelname,
 		labeltype,
-		"",
+		identifier,
 		blocks,
 	}, nil
 }
