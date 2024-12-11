@@ -55,6 +55,25 @@ func GetMBREntryForPart(blkpath string) (int64, error) {
 	return a, nil
 }
 
+func GetMBRDiskID(devpath string) (uint32, error) {
+	fi, err1 := os.Open(devpath)
+	defer fi.Close()
+
+	/* 440, also know as 0x1B8. */
+	ido, _, err2 := bass.Walk(fi, 4, 440)
+
+	err := errors.Join(err1, err2)
+	if err != nil {
+		return 0, err
+	}
+
+	/* From __dos__assemble_4le() at util-linux pt-mbr.h. */
+	return (uint32(ido[0]) |
+		(uint32(ido[1]) << 8) |
+		(uint32(ido[2]) << 16) |
+		(uint32(ido[3]) << 24)), nil
+}
+
 func GetMBRPartType(blkpath string) (string, error) {
 	devpath, err1 := GetBlockMainDisk(blkpath)
 	fi, err2 := os.Open(devpath)
@@ -72,6 +91,7 @@ func GetMBRPartType(blkpath string) (string, error) {
 	if partname == "" {
 		partname = "Unknown"
 	}
+
 	return partname, nil
 }
 

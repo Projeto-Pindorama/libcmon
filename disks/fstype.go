@@ -1,6 +1,6 @@
 /*
- * disks/fstype.go - Map for associating MBR partition types with
- * its human-readable names.
+ * disks/fstype.go - Functions for getting partition types
+ * and disk/partition identifiers.
  *
  * Copyright (C) 2024: Pindorama
  *		Luiz Antônio Rangel (takusuman)
@@ -11,6 +11,8 @@
 
 package disks
 
+import "fmt"
+
 func GetPartType(blkpath string, label int) (string, error) {
 	var s string
 	var err error
@@ -20,6 +22,22 @@ func GetPartType(blkpath string, label int) (string, error) {
 		s, err = GetMBRPartType(blkpath)
 	case GPT:
 		s, err = GetGPTPartType(blkpath)
+	}
+
+	return s, err
+}
+
+func GetDiskIdentifier(devpath string, label int) (string, error) {
+	var s string
+	var err error
+
+	switch label {
+	case MBR:
+		h, err1 := GetMBRDiskID(devpath)
+		err = err1
+		s = fmt.Sprintf("0x%08x", h)
+	case GPT:
+		s, err = GetGPTDiskID(devpath)
 	}
 
 	return s, err

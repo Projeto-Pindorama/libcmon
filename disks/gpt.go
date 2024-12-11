@@ -16,3 +16,7 @@ import (
 func GetGPTPartType(blkname string) (string, error) {
 	return "", errors.New("Not implemented (yet).")
 }
+
+func GetGPTDiskID(devpath string) (string, error) {
+	return "", errors.New("Not implemented (yet).")
+}
