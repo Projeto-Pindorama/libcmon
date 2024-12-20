@@ -117,7 +117,7 @@ exit:
 			return false, n, err
 		}
 
-		if (bytes.Compare(this, b)) == 0 {
+		if (bytes.Equal(this, b)) {
 			found = true
 			/*
 			 * Some funky arithmetic I discovered for returning
