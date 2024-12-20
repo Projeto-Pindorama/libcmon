@@ -1,5 +1,5 @@
 /*
- * bass/strcmp.go - str(n)cmp(3) replicas. 
+ * bass/strcmp.go - strncmp(3) replica.
  *
  * Copyright (C) 2024: Pindorama
  *		Luiz Antônio Rangel (takusuman)
@@ -11,19 +11,13 @@
 package bass
 
 func Strncmp(s1, s2 string, upto uint) bool {
-	if (uint(len(s1)) < upto) || (uint(len(s2)) < upto) {
-		return false
+	minlen := int(upto)
+	if len(s1) < minlen {
+		minlen = len(s1)
+	}
+	if len(s2) < minlen {
+		minlen = len(s2)
 	}
 
-	return Strcmp(s1[:upto], s2[:upto])
-}
-
-func Strcmp(s1, s2 string) bool {
-	/*
-	 * As per 'go doc strings.Compare':
-	 * "It is usually clearer and always faster to use the
-	 * built-in string comparison operators ==, <, >, and so on".
-	 */
-
-	return (s1 == s2)
+	return s1[:minlen] == s2[:minlen]
 }
