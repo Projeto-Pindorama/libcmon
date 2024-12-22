@@ -14,7 +14,7 @@ rewrite in Go.
 
 It provides the following functionality:
 
-* General file-to-``[]byte`` functions and ``str(n)cpy``(3) "replicas" available
+* General file-to-``[]byte`` functions and a ``strncpy``(3) "replica" available
   at ``bass/``. The primitive is ``bass.Walk()``, the other ones are based on it;
 * Functions for collecting disk information at ``disks/``, also planned to write
   on disks in the future;
