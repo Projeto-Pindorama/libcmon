@@ -25,8 +25,8 @@ const (
 	Pi = (Ti * 1024)
 )
 
-func DiskSectorsToHuman(sectsiz uint16, nsectors uint64) (float32, string) {
-	v := float32((nsectors * uint64(sectsiz)))
+func DiskSectorsToHuman(sectsiz uint16, nsectors uint64) (float64, string) {
+	v := float64((nsectors * uint64(sectsiz)))
 	unit := "B"
 
 	if v >= Ki && v < Mi {
@@ -49,7 +49,7 @@ func DiskSectorsToHuman(sectsiz uint16, nsectors uint64) (float32, string) {
 	return v, unit
 }
 
-func DiskSectorsTo(want uint64, sectsiz uint16, have uint64) float32 {
+func DiskSectorsTo(want uint64, sectsiz uint16, have uint64) float64 {
 	/* Octets per sector divided per the unit. */
 	return (float64(have*uint64(sectsiz)) / float64(want))
 }
