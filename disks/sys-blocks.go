@@ -32,6 +32,8 @@ import (
 type QueueLimits struct {
 	Physical_Block_Size uint16
 	Logical_Block_Size  uint16
+	Minimum_IO_Size uint16
+	Optimal_IO_Size uint16
 }
 
 func MakeVFSBlockPaths(devpath string) map[string]string {

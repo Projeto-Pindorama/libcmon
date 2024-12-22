@@ -27,7 +27,7 @@ func main() {
 			disk.NBytes, disk.NSectors, disk.ModelName,
 			disk.QueueLimits.Logical_Block_Size, disk.QueueLimits.Logical_Block_Size,
 			disk.QueueLimits.Logical_Block_Size, disk.QueueLimits.Physical_Block_Size,
-			0, 0,
+			disk.QueueLimits.Minimum_IO_Size, disk.QueueLimits.Optimal_IO_Size,
 			disk.LabelType, disk.Identifier)
 		blknamsiz := len(disk.DevPath)
 		fmt.Printf("%*s Boot Start End   Sectors%10s  %10s\n", (blknamsiz + 1), "Device", "Size", "Type")
