@@ -67,13 +67,16 @@ func init() {
 
 func GetAllDisksInfo() ([]DiskInfo, error) {
 	var disks []DiskInfo
+	var err error
 	diskpaths := GetSysDisksPath()
 
 	for d := 0; d < len(diskpaths); d++ {
-		diskinfo, err := GetDiskInfo(diskpaths[d])
-		if err != nil {
-			return []DiskInfo{}, err
-		}
+		var diskinfo *DiskInfo
+		diskinfo, err = GetDiskInfo(diskpaths[d])
+		/*		if err != nil {
+		 *			return []DiskInfo{}, err
+		 *		}
+		 */
 		disks = append(disks,
 			DiskInfo{
 				diskinfo.DevPath,
@@ -85,7 +88,7 @@ func GetAllDisksInfo() ([]DiskInfo, error) {
 				diskinfo.Identifier,
 				diskinfo.Blocks})
 	}
-	return disks, nil
+	return disks, err
 }
 
 func GetSysDisksPath() []string {
@@ -126,11 +129,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 	blocks, err6 := GetDiskSubBlocks(devpath, qlim.Logical_Block_Size, label)
 
 	err := errors.Join(err1, err2, err3,
-				err4, err5, err6)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-	}
-
+		err4, err5, err6)
 	return &DiskInfo{
 		devpath,
 		nsectors,
@@ -140,7 +139,7 @@ func GetDiskInfo(devpath string) (*DiskInfo, error) {
 		labeltype,
 		identifier,
 		blocks,
-	}, nil
+	}, err
 }
 
 func GetDiskSubBlocks(devpath string, blksize uint16, label int) ([]BlockInfo, error) {
@@ -190,19 +189,21 @@ func GetBlockInfo(blkpath string, blksize uint16, label int) (*BlockInfo, error)
 		return &BlockInfo{}, err
 	}
 
-	nsectors, err := GetBlockNSectors(blkpath)
-	if err != nil {
-		return &BlockInfo{}, err
-	}
+	nsectors, err1 := GetBlockNSectors(blkpath)
 	size := (uint64(blksize) * nsectors)
 	/*
 	 * Not all blocks have UUIDs, so we will be
 	 * ignoring errors that may happen there.
 	 */
 	uuid, _ := GetUUIDForBlock(blkpath)
-	bootable, err := CanItBoot(blkpath)
-	fstype, _ := GetPartType(blkpath, label)
-
+	bootable, err2 := CanItBoot(blkpath)
+	fstype, err3 := GetPartType(blkpath, label)
+	err := errors.Join(err1, err2, err3)
+	/*
+	 *	if err != nil {
+	 *		return &BlockInfo{}, err
+	 *	}
+	 */
 	return &BlockInfo{
 		blkpath,
 		bootable,
@@ -214,7 +215,7 @@ func GetBlockInfo(blkpath string, blksize uint16, label int) (*BlockInfo, error)
 		fstype,
 		Dev_T{
 			devno.Major,
-			devno.Minor}}, nil
+			devno.Minor}}, err
 }
 
 func IsEntireDisk(devpath string) bool {

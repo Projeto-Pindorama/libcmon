@@ -14,7 +14,8 @@ import (
 /* major:min (int:int): /sys/block/<basename /dev/xxx>/dev */
 /* sysfs_blkdev: /sys/dev/block/major(devno):minor(devno) */
 func main() {
-	disks, _ := disks.GetAllDisksInfo()
+	disks, err := disks.GetAllDisksInfo()
+	fmt.Printf("Erros: %v\n", err)
 
 	for d := 0; d < len(disks); d++ {
 		disk := disks[d]
