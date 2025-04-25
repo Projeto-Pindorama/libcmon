@@ -1,5 +1,5 @@
 /*
- * zip.go - Hip unzip (and zip) boilerplates for  Google Go's archive/zip
+ * zip.go - Hip unzip (and zip) boilerplates for Google Go's archive/zip
  *
  * Copyright (c) 2023-2025 Luiz Antônio Rangel
  *
@@ -18,7 +18,7 @@ func GetZipEntries(f *zip.ReadCloser) (*zip.FileHeader) {
 		zipent = 0
 		return nil
 	}
-	finfo = f.File[zipent].FileHeader
+	finfo = &f.File[zipent].FileHeader
 	zipent += 1
 	return finfo
 }
