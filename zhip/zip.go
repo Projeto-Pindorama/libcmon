@@ -26,9 +26,11 @@ func GetZipEntries(f *zip.ReadCloser) (*zip.FileHeader) {
 func GetZipESlice(f *zip.ReadCloser) ([]*zip.FileHeader) {
 	var finfo *zip.FileHeader
 	var zentries []*zip.FileHeader
-	for notok := true; notok; notok = (finfo != nil) {
-		finfo = zhip.GetZipEntries(f)
-		zentries = append(zentries, &finfo)
+	for ;;  {
+		if finfo = GetZipEntries(f); (finfo == nil) {
+			break
+		}
+		zentries = append(zentries, finfo)
 	}
 	return zentries
 }
