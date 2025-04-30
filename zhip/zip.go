@@ -54,16 +54,16 @@ func GetZipLargestEntry(f *zip.ReadCloser) (uint32) {
 func GetCompressionMethod(f *zip.FileHeader) (string) {
 	switch (f.Method) {
 	case zip.Deflate:
-		return "DEFLATE"
+		return "Deflt"
 	case zip.Store:
-		return "Stored"
+		return "Store"
 	default:
 		return ""
 	}
 }
 
 func GetCompressionRatio(f *zip.FileHeader) (float32) {
-	if m := GetCompressionMethod(f); m == "Stored" {
+	if m := GetCompressionMethod(f); m == "Store" {
 		return float32(0)
 	} else {
 		return float32(100 - ((f.CompressedSize * 100) / f.UncompressedSize))
