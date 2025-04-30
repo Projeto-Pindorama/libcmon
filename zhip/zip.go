@@ -34,3 +34,19 @@ func GetZipESlice(f *zip.ReadCloser) ([]*zip.FileHeader) {
 	}
 	return zentries
 }
+
+func GetZipLargestEntry(f *zip.ReadCloser) (uint32) {
+	var finfo *zip.FileHeader
+	/* Get the largest file size. */
+	longlen := uint32(0)
+	for ;;  {
+		if finfo = GetZipEntries(f); (finfo == nil) {
+			break
+		}
+		curlen := finfo.UncompressedSize
+		if curlen > longlen {
+			longlen = curlen
+		}
+	}
+	return longlen
+}
