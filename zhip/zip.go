@@ -10,7 +10,8 @@ package zhip
 
 import "archive/zip"
 
-var zipent int = 0;
+var zipent int = 0
+var EntryNo = make(map[string]int)
 
 func GetZipEntries(f *zip.ReadCloser) (*zip.FileHeader) {
 	var finfo *zip.FileHeader
@@ -19,6 +20,7 @@ func GetZipEntries(f *zip.ReadCloser) (*zip.FileHeader) {
 		return nil
 	}
 	finfo = &f.File[zipent].FileHeader
+	EntryNo[finfo.Name] = zipent
 	zipent += 1
 	return finfo
 }
