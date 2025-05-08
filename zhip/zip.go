@@ -10,6 +10,7 @@ package zhip
 
 import (
 	"archive/zip"
+	"errors"
 	"os"
 )
 
@@ -120,7 +121,7 @@ func RecordNewEntry(awriter *zip.Writer, name string) (int, error) {
 	return wbytes, nil
 }
 
-func LocateZipEntry(name string) (int) (
+func LocateZipEntry(name string) (int) {
 	ent, ok := EntryNo[name]
 	if !ok {
 		ent = -1
