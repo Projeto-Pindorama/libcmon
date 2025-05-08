@@ -8,7 +8,10 @@
 
 package zhip
 
-import "archive/zip"
+import (
+	"archive/zip"
+	"os"
+)
 
 var zipent int = 0
 var EntryNo = make(map[string]int)
@@ -70,4 +73,57 @@ func GetCompressionRatio(f *zip.FileHeader) (float32) {
 	} else {
 		return float32(100 - ((f.CompressedSize * 100) / f.UncompressedSize))
 	}
+}
+
+func RecordNewEntry(awriter *zip.Writer, name string) (int, error) {
+	var wbytes int
+	file, err := os.Stat(name)
+	if err != nil {
+		return 0, err
+	}
+
+	if file.IsDir() {
+		/*
+		 * From 'go doc zip.Create':
+		 * "To create a directory instead of a file,
+		 * add a trailing slash to the name."
+		 */
+		if name[(len(name)-1):] != "/" {
+			name += "/"
+		}
+	}
+	entfhdr, err_fhdr := zip.FileInfoHeader(file)
+	/* TODO: Add option to select the compression method. */
+	if !file.IsDir() {
+		entfhdr.Method = zip.Deflate
+	}
+	ent, err_creat := awriter.CreateHeader(entfhdr)
+	err = errors.Join(err_fhdr, err_creat)
+	if err != nil {
+		return 0, err
+	}
+
+
+	if !file.IsDir() {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return 0, err
+		}
+		wbytes, err = ent.Write(data)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	EntryNo[name] = zipent
+	zipent += 1
+	return wbytes, nil
+}
+
+func LocateZipEntry(name string) (int) (
+	ent, ok := EntryNo[name]
+	if !ok {
+		ent = -1
+	}
+	return ent
 }
