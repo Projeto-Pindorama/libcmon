@@ -70,10 +70,11 @@ func GetCompressionMethod(f *zip.FileHeader) string {
 }
 
 func GetCompressionRatio(f *zip.FileHeader) float32 {
-	if m := GetCompressionMethod(f); m == "Store" {
+	if m := GetCompressionMethod(f); m == "Store" ||
+		f.UncompressedSize64 == uint64(0) {
 		return float32(0)
 	}
-	return float32(((f.UncompressedSize * 100) / f.CompressedSize) - 100)
+	return float32(100 - ((f.CompressedSize64 * 100) / f.UncompressedSize64))
 }
 
 func RecordNewEntry(awriter *zip.Writer, name string) (int, error) {
