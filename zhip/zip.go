@@ -70,7 +70,7 @@ func GetCompressionMethod(f *zip.FileHeader) string {
 }
 
 func GetCompressionRatio(f *zip.FileHeader) float32 {
-	if m := zhip.GetCompressionMethod(f); m == "Store" {
+	if m := GetCompressionMethod(f); m == "Store" {
 		return float32(0)
 	}
 	return float32(((f.UncompressedSize * 100) / f.CompressedSize) - 100)
