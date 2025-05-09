@@ -15,11 +15,12 @@ import (
 )
 
 var zipent int = 0
+var CompressionMethod uint16 = zip.Store
 var EntryNo = make(map[string]int)
 
-func GetZipEntries(f *zip.ReadCloser) (*zip.FileHeader) {
+func GetZipEntries(f *zip.ReadCloser) *zip.FileHeader {
 	var finfo *zip.FileHeader
-	if len(f.File) < (zipent + 1)  {
+	if len(f.File) < (zipent + 1) {
 		zipent = 0
 		return nil
 	}
@@ -29,11 +30,11 @@ func GetZipEntries(f *zip.ReadCloser) (*zip.FileHeader) {
 	return finfo
 }
 
-func GetZipESlice(f *zip.ReadCloser) ([]*zip.FileHeader) {
+func GetZipESlice(f *zip.ReadCloser) []*zip.FileHeader {
 	var finfo *zip.FileHeader
 	var zentries []*zip.FileHeader
-	for ;;  {
-		if finfo = GetZipEntries(f); (finfo == nil) {
+	for ;; {
+		if finfo = GetZipEntries(f); finfo == nil {
 			break
 		}
 		zentries = append(zentries, finfo)
@@ -41,12 +42,12 @@ func GetZipESlice(f *zip.ReadCloser) ([]*zip.FileHeader) {
 	return zentries
 }
 
-func GetZipLargestEntry(f *zip.ReadCloser) (uint32) {
+func GetZipLargestEntry(f *zip.ReadCloser) uint32 {
 	var finfo *zip.FileHeader
 	/* Get the largest file size. */
 	longlen := uint32(0)
-	for ;;  {
-		if finfo = GetZipEntries(f); (finfo == nil) {
+	for ;; {
+		if finfo = GetZipEntries(f); finfo == nil {
 			break
 		}
 		curlen := finfo.UncompressedSize
@@ -57,18 +58,18 @@ func GetZipLargestEntry(f *zip.ReadCloser) (uint32) {
 	return longlen
 }
 
-func GetCompressionMethod(f *zip.FileHeader) (string) {
-	switch (f.Method) {
-	case zip.Deflate:
-		return "Deflt"
-	case zip.Store:
-		return "Store"
-	default:
-		return ""
+func GetCompressionMethod(f *zip.FileHeader) string {
+	switch f.Method {
+		case zip.Deflate:
+			return "Deflt"
+		case zip.Store:
+			return "Store"
+		default:
+			return ""
 	}
 }
 
-func GetCompressionRatio(f *zip.FileHeader) (float32) {
+func GetCompressionRatio(f *zip.FileHeader) float32 {
 	if m := GetCompressionMethod(f); m == "Store" {
 		return float32(0)
 	} else {
@@ -94,16 +95,24 @@ func RecordNewEntry(awriter *zip.Writer, name string) (int, error) {
 		}
 	}
 	entfhdr, err_fhdr := zip.FileInfoHeader(file)
-	/* TODO: Add option to select the compression method. */
+	/*
+	 * Set the name. Per the contrary, we will not be
+	 * having files on subdirectories.
+	 */
+	entfhdr.Name = name
 	if !file.IsDir() {
-		entfhdr.Method = zip.Deflate
+		/*
+		 * Can be set outside with
+		 * 'zhip.CompressionMethod = [...]'
+		 * now.
+		 */
+		entfhdr.Method = CompressionMethod
 	}
 	ent, err_creat := awriter.CreateHeader(entfhdr)
 	err = errors.Join(err_fhdr, err_creat)
 	if err != nil {
 		return 0, err
 	}
-
 
 	if !file.IsDir() {
 		data, err := os.ReadFile(name)
@@ -121,9 +130,13 @@ func RecordNewEntry(awriter *zip.Writer, name string) (int, error) {
 	return wbytes, nil
 }
 
-func LocateZipEntry(name string) (int) {
+func LocateZipEntry(name string) int {
 	ent, ok := EntryNo[name]
 	if !ok {
+		/*
+		 * This would probably panic().
+		 * Perhaps think of a better option later?
+		 */
 		ent = -1
 	}
 	return ent
