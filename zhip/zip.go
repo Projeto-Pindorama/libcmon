@@ -74,7 +74,7 @@ func GetCompressionRatio(f *zip.FileHeader) float32 {
 		f.UncompressedSize64 == uint64(0) {
 		return float32(0)
 	}
-	return float32(100 - ((f.CompressedSize64 * 100) / f.UncompressedSize64))
+	return float32(100 - float32((f.CompressedSize64 * 100) / f.UncompressedSize64))
 }
 
 func RecordNewEntry(awriter *zip.Writer, name string) (int, error) {
