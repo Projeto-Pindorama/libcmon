@@ -10,10 +10,8 @@
 
 package bass
 
-/*
- * Strncmp offers a boilerplace for comparing two strings until a
- * certain point. If you're used to C, it may be of use.
- */
+// Strncmp offers a boilerplace for comparing two strings until a
+// certain point. If you're used to C, it may be of use.
 func Strncmp(s1, s2 string, upto uint) bool {
 	minlen := int(upto)
 	if len(s1) < minlen {

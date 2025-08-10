@@ -25,23 +25,19 @@ const (
 	Pi = (Ti * 1024)
 )
 
-/*
- * DiskSectorsTo calculates how much a number of sectors ('have') is
- * in human-comprehensible units, with 'want' being a constant from
- * this file that relates the mentioned unit with its size in octets.
- * 'sectsize' is usually 512, but it is possible that it changes, so please
- * attempt to obtain it in your specific environment --- on Linux, this can
- * be obtained for a specific disk from /sys/block.
- */
+// DiskSectorsTo calculates how much a number of sectors ('have') is
+// in human-comprehensible units, with 'want' being a constant from
+// this file that relates the mentioned unit with its size in octets.
+// 'sectsize' is usually 512, but it is possible that it changes, so please
+// attempt to obtain it in your specific environment --- on Linux, this can
+// be obtained for a specific disk from /sys/block.
 func DiskSectorsTo(want uint64, sectsiz uint16, have uint64) float64 {
 	/* Octets per sector divided per the unit. */
 	return (float64(have*uint64(sectsiz)) / float64(want))
 }
 
-/*
- * DiskSectorsToHuman is a boilerplate to DiskSectorsTo. A really nice one.
- * It also returns the unit name as a string.
- */
+// DiskSectorsToHuman is a boilerplate to DiskSectorsTo. A really nice one.
+// It also returns the unit name as a string.
 func DiskSectorsToHuman(sectsiz uint16, nsectors uint64) (float64, string) {
 	v := float64((nsectors * uint64(sectsiz)))
 	unit := "B"

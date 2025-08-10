@@ -19,12 +19,10 @@ import (
 	"os"
 )
 
-/*
- * Walk 'walks' a file descriptor until a certain point ('place'),
- * or from one point to another, with the end point and the initial
- * one being informed, respectively. If the end point is informed as
- * '-1', it walks until EOF.
- */
+// Walk 'walks' a file descriptor until a certain point ('place'),
+// or from one point to another, with the end point and the initial
+// one being informed, respectively. If the end point is informed as
+// '-1', it walks until EOF.
 func Walk(f *os.File, place ...int64) ([]byte, int64, error) {
 	var r int64
 	var b []byte
@@ -65,12 +63,10 @@ coda:
 	return b, r, nil
 }
 
-/*
- * WalkTil walks a file descriptor until a certain octet ('here') is
- * encountered and returns a 'byte' array containing everything before
- * it. Can be really useful when parsing a binary header, or reading lines
- * terminated in '\n'.
- */
+// WalkTil walks a file descriptor until a certain octet ('here') is
+// encountered and returns a 'byte' array containing everything before
+// it. Can be really useful when parsing a binary header, or reading lines
+// terminated in '\n'.
 func WalkTil(here byte, f *os.File) ([]byte, int, error) {
 	var b []byte
 	var i int
@@ -90,12 +86,11 @@ func WalkTil(here byte, f *os.File) ([]byte, int, error) {
 	return b, i, nil
 }
 
-/*
- * WalkLookinFor works similarly to WalkTil, but it looks for an entire
- * 'byte' array and returns a boolean for whether the said array is
- * encountered in the file (or not). Can be useful for detecting certain
- * characteristics in a binary.
- */
+
+// WalkLookinFor works similarly to WalkTil, but it looks for an entire
+// 'byte' array and returns a boolean for whether the said array is
+// encountered in the file (or not). Can be useful for detecting certain
+// characteristics in a binary.
 func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, int64, error) {
 	var n, stop, nstep int64
 	nstep = int64(len(this))
