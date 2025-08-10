@@ -12,8 +12,10 @@ package prcl
 
 import "reflect"
 
-/* Matches the integer width number for a
- * integer passed per reflect.Kind. */
+/*
+ * IntWidth matches the integer width number for
+ * a integer passed per reflect.Kind.
+ */
 func IntWidth(reflectk reflect.Kind) int {
 	/* (u)int type-to-size map. */
 	int_sizes := map[reflect.Kind]int{
