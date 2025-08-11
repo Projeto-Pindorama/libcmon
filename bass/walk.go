@@ -3,7 +3,7 @@
  * file pointers and making 'em into []byte(s).
  * Ain't you ever seen a walking bass?
  *
- * Copyright (C) 2024: Pindorama
+ * Copyright (C) 2025: Pindorama
  *		Luiz Antônio Rangel (takusuman)
  *
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -87,14 +87,18 @@ func WalkTil(here byte, f *os.File) ([]byte, int, error) {
 }
 
 
-// WalkLookinFor works similarly to WalkTil, but it looks for an entire
-// 'byte' array and returns a boolean for whether the said array is
-// encountered in the file (or not). Can be useful for detecting certain
-// characteristics in a binary.
-func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, int64, error) {
+// WalkLookinFor works similarly to WalkTil, but it looks for an
+// entire 'byte' array and returns a boolean for whether the said
+// array is encountered in the file (or not); it is also capable
+// of returning what was read before it. Be careful with the
+// number of octets read, because it returns the offset of the
+// last octet before the searched array.
+// Can be useful for detecting certain characteristics in a binary.
+func WalkLookinFor(this []byte, at *os.File, place ...int64) (bool, []byte, int64, error) {
 	var n, stop, nstep int64
 	nstep = int64(len(this))
 	found := false
+	looked := []byte("")
 	n = 0
 	stop = -1
 
@@ -127,7 +131,7 @@ exit:
 
 		b, _, err := Walk(at, nstep, n)
 		if err != nil {
-			return false, n, err
+			return false, nil, n, err
 		}
 
 		if (bytes.Equal(this, b)) {
@@ -138,9 +142,16 @@ exit:
 			 * pass-by.
 			 */
 			n--
-			n += nstep
+		} else {
+			/*
+			 * Since we're building a []byte with the size of
+			 * 'nstep' but walking in steps of one (n++), we
+			 * can just append the first element of the array
+			 * for each cycle of the loop.
+			 */
+			looked = append(looked, b[0])
 		}
 	}
 
-	return found, n, nil
+	return found, looked, n, nil
 }
