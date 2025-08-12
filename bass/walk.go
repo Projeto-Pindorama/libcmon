@@ -137,9 +137,8 @@ exit:
 		if (bytes.Equal(this, b)) {
 			found = true
 			/*
-			 * Some funky arithmetic I discovered for returning
-			 * the correct number of "binary places" Walk()ed
-			 * pass-by.
+			 * Roll back one character since the current 'n' would
+			 * be the start of the octet array we're searching for.
 			 */
 			n--
 		} else {
