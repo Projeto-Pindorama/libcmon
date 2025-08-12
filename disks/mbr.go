@@ -111,7 +111,7 @@ func CanItBoot(blkpath string) (bool, error) {
 	defer fi.Close()
 
 	entry, err3 := GetMBREntryForPart(blkpath)
-	found, _, err4 := bass.WalkLookinFor(boot_octet, fi, 1, entry)
+	found, _, _, err4 := bass.WalkLookinFor(boot_octet, fi, 1, entry)
 
 	err := errors.Join(err1, err2, err3, err4)
 	if err != nil {

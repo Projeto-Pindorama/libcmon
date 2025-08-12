@@ -43,7 +43,7 @@ func IsMBRorGPT(devpath string) (int, error) {
 	 * reason why we're going at 450 and reading 1 octet
 	 * from there.
 	 */
-	found, _, err1 =
+	found, _, _, err1 =
 		bass.WalkLookinFor(mbr["protective"], fi, 1, 450)
 	switch found {
 	case false:
@@ -54,11 +54,11 @@ func IsMBRorGPT(devpath string) (int, error) {
 		 * protective MBR) (512 octets) plus
 		 * LBA 1 (8 octets).
 		 */
-		found, _, err2 =
+		found, _, _, err2 =
 			bass.WalkLookinFor(mbr["efi_part"], fi, (512 + 8), 0)
 		switch found {
 		case false:
-			found, _, err3 =
+			found, _, _, err3 =
 				bass.WalkLookinFor(mbr["general"], fi, 2, 510)
 			switch found {
 			case true:
