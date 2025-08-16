@@ -33,7 +33,7 @@ var (
 )
 
 const (
-	_ Format = iota /* Set all constants as 'Format'. */
+	_ Format = 0 /* Set all constants as 'Format'. */
 
 	/* Type of header. */
 	ZILTCH = 00000000 /* no format chosen yet */
