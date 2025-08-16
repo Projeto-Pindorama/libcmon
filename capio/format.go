@@ -18,7 +18,7 @@
 
 package capio
 
-//type Format uint 
+type Format uint
 
 /* Magic numbers and such. */
 const (
@@ -33,37 +33,39 @@ var (
 )
 
 const (
-	/* Type of header. */
-	ZILTCH uint = 00000000 /* no format chosen yet */
+	_ Format = iota /* Set all constants as 'Format'. */
 
-	HEADER_ODC    uint = 00002001 /* POSIX ASCII cpio format */
-	HEADER_DEC    uint = 00002002 /* DEC extended cpio format */
-	HEADER_BINLE  uint = 00003001 /* binary (default) cpio format LE */
-	HEADER_BINBE  uint = 00003101 /* binary (default) cpio format BE */
-	HEADER_SGILE  uint = 00003201 /* IRIX-style -K binary format LE */
-	HEADER_SGIBE  uint = 00003301 /* IRIX-style -K binary format BE */
-	HEADER_ASC    uint = 00004001 /* SVR4 ASCII cpio format */
-	HEADER_SCOASC uint = 00004201 /* UnixWare 7.1 ASCII cpio format */
-	HEADER_CRC    uint = 00004401 /* SVR4 ASCII cpio format w/checksum */
-	HEADER_SCOCRC uint = 00004601 /* UnixWare 7.1 ASCII cpio w/checksum */
-	HEADER_CRAY   uint = 00010001 /* Cray cpio, UNICOS 6 and later */
-	HEADER_CRAY5  uint = 00010002 /* Cray cpio, UNICOS 5 and earlier */
-	HEADER_BAR    uint = 00400001 /* bar format type */
+	/* Type of header. */
+	ZILTCH = 00000000 /* no format chosen yet */
+
+	HEADER_ODC    = 00002001 /* POSIX ASCII cpio format */
+	HEADER_DEC    = 00002002 /* DEC extended cpio format */
+	HEADER_BINLE  = 00003001 /* binary (default) cpio format LE */
+	HEADER_BINBE  = 00003101 /* binary (default) cpio format BE */
+	HEADER_SGILE  = 00003201 /* IRIX-style -K binary format LE */
+	HEADER_SGIBE  = 00003301 /* IRIX-style -K binary format BE */
+	HEADER_ASC    = 00004001 /* SVR4 ASCII cpio format */
+	HEADER_SCOASC = 00004201 /* UnixWare 7.1 ASCII cpio format */
+	HEADER_CRC    = 00004401 /* SVR4 ASCII cpio format w/checksum */
+	HEADER_SCOCRC = 00004601 /* UnixWare 7.1 ASCII cpio w/checksum */
+	HEADER_CRAY   = 00010001 /* Cray cpio, UNICOS 6 and later */
+	HEADER_CRAY5  = 00010002 /* Cray cpio, UNICOS 5 and earlier */
+	HEADER_BAR    = 00400001 /* bar format type */
 
 	/* Characteristics of the archive ('masked' into integer). */
-	TYPE_BE     uint = 00000100 /* this binary archive is big-endian */
-	TYPE_SGI    uint = 00000200 /* SGI cpio -K flag binary archive */
-	TYPE_SCO    uint = 00000200 /* SCO UnixWare 7.1 extended archive */
-	TYPE_CRC    uint = 00000400 /* this has a SVR4 'crc' checksum */
-	TYPE_BINARY uint = 00001000 /* this is a binary cpio type */
-	TYPE_OCPIO  uint = 00002000 /* this is an old cpio type */
-	TYPE_NCPIO  uint = 00004000 /* this is a SVR4 cpio type */
-	TYPE_CRAY   uint = 00010000 /* this is a Cray cpio archive */
-	TYPE_CPIO   uint = 00077000 /* this is a cpio type */
-	TYPE_BAR    uint = 00400000 /* this is a bar type */
+	TYPE_BE     = 00000100 /* this binary archive is big-endian */
+	TYPE_SGI    = 00000200 /* SGI cpio -K flag binary archive */
+	TYPE_SCO    = 00000200 /* SCO UnixWare 7.1 extended archive */
+	TYPE_CRC    = 00000400 /* this has a SVR4 'crc' checksum */
+	TYPE_BINARY = 00001000 /* this is a binary cpio type */
+	TYPE_OCPIO  = 00002000 /* this is an old cpio type */
+	TYPE_NCPIO  = 00004000 /* this is a SVR4 cpio type */
+	TYPE_CRAY   = 00010000 /* this is a Cray cpio archive */
+	TYPE_CPIO   = 00077000 /* this is a cpio type */
+	TYPE_BAR    = 00400000 /* this is a bar type */
 )
 
-var formatNames = map[uint]string{
+var formatNames = map[Format]string{
 	ZILTCH:        "ZILTCH",
 	HEADER_BINLE:  "BINLE",
 	HEADER_BINBE:  "BINBE",
@@ -79,12 +81,16 @@ var formatNames = map[uint]string{
 	HEADER_BAR:    "BAR",
 }
 
-//func (f Format) String() string {
-//	identifier := f
-//	_, ok := formatNames[identifier]
-//	if ok {
-//		return formatNames[identifier]
-//	} else {
-//		return "<unknown>"
-//	}
-//}
+func (f Format) String() string {
+	/*
+	 * TODO: Perhaps move this to another file since it
+	 * isn't exactly part of describing the cpio format.
+	 */
+	identifier := f
+	_, ok := formatNames[identifier]
+	if ok {
+		return formatNames[identifier]
+	} else {
+		return "<unknown>"
+	}
+}

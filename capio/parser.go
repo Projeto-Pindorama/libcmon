@@ -22,7 +22,7 @@ import (
 // the cpio header is. It correlates the magic number with
 // a internal constant for it, making it easier to deal with
 // each header type.
-func whatHeaderIsIt(file *os.File) (uint, error) {
+func whatHeaderIsIt(file *os.File) (Format, error) {
 	buffer, _, err := bass.Walk(file, 512)
 	if err != nil {
 		return ZILTCH, err
@@ -49,7 +49,7 @@ func whatHeaderIsIt(file *os.File) (uint, error) {
 			 * if (itsaDEC) {
 		 *	return HEADER_DEC, nil
 		 * }
-		 */
+		*/
 		return HEADER_ASC, nil
 	}
 
@@ -59,5 +59,5 @@ func whatHeaderIsIt(file *os.File) (uint, error) {
 func CallFromTest(file *os.File) {
 	header, _ := whatHeaderIsIt(file)
 	println((header & TYPE_BINARY))
-	fmt.Println(formatNames[header])
+	println(header.String())
 }
