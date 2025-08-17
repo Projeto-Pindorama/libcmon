@@ -66,7 +66,6 @@ const (
 )
 
 var formatNames = map[Format]string{
-	ZILTCH:        "ZILTCH",
 	HEADER_BINLE:  "BINLE",
 	HEADER_BINBE:  "BINBE",
 	HEADER_ASC:    "NEWC",
