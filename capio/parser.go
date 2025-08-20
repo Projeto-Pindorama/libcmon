@@ -54,7 +54,6 @@ func whatHeaderIsIt(buffer []byte) Format {
 	return ZILTCH
 }
 
-
 // whatsTheHeaderType determines the specific type of the archive,
 // besides whether it is binary (L.E. or B.E.) or ASCII/new cpio.
 /*
@@ -72,49 +71,92 @@ func whatHeaderIsIt(buffer []byte) Format {
 func doTheParse(file *os.File) (*Header, error) {
 	header := []byte("")
 	entry := &Header{}
+
+	/*
+	 * TODO: Determine the block size for the
+	 * device in question for more efficience.
+	 */
 	buffer, _, err := bass.Walk(file, 512)
 	var teste time.Time
 	if err != nil {
 		return nil, err
 	}
 	header_format := whatHeaderIsIt(buffer)
-	fmt.Println(header_format.String())
+	header_len := uint(0)
 
 	for i := 0; i < len(buffer); i += 2 {
 		if i == 0 {
 			continue
 		}
+		/* TODO: Fix for afio and odc/original ASCII format. */
 		if (buffer[(i-1)] != nula) &&
 			bytes.Equal(buffer[i:(i+2)], []byte{nula, nula}) {
 			header = buffer[:(i + 2)]
 		}
 	}
 
-	switch (header_format & TYPE_BINARY) {
+	/* These will populate the fields of the Header struct. */
+	typeflag := nula
+	file_name := ""
+	link_name := ""
+	file_size := int64(0)
+	file_mode := int64(0)
+	file_uid := 0
+	file_gid := 0
+	devmajor := int64(0)
+	devminor := int64(0)
+	magic := []byte("")
+
+	/*
+	 * The header format goes around this:
+	 * 	    M  D  I  Md U  G  nL Mn T  Ns Fsz
+	 * Binary: [2][2][2][2][2][2][2][2][4][2][4]
+	 * ASCII:  [6][6][6][6][6][6][6][6][11][6][11]
+	 *
+	 * The struct for the New ASCII format differs a little.
+	 */
+	switch header_format & TYPE_BINARY {
 	case 0: /* ASCII, ODC, CRC, etc. */
-		println("Isso é tudo, pe-pessoal!")
-		println("... Por ora.")
+		if (header_format & TYPE_OCPIO) != 0 {
+			header_len = 76 /* Broken for now. */
+		} else if (header_format&TYPE_NCPIO) != 0 ||
+			(header_format&TYPE_CRC) != 0 {
+			header_len = 110
+		}
+		magic = header[:6]
 	default: /* Binary, either little or big endian. */
-		entry = &Header{
-			Typeflag:   nula,
-			Name:       "",
-			Linkname:   "",
-			Size:       0,
-			Mode:       0,
-			Uid:        0,
-			Gid:        0,
-			Uname:      "",
-			Gname:      "",
-			ModTime:    teste,
-			AccessTime: teste,
-			ChangeTime: teste,
-			Devmajor:   0,
-			Devminor:   0,
-			Magic:      header[:2],
-			Format:     header_format,
+		magic = header[:2]
+		switch header_format & TYPE_BE {
+		case 0: /* Little endian. */
+			println("LE")
+		default: /* Big endian. */
+			println("BE")
 		}
 	}
 
+	file_name = string(header[header_len:(len(header) - 2)])
+	if file_name[(len(file_name) - 1)] == '/' {
+		typeflag = TypeDir
+	}
+
+	entry = &Header{
+		Typeflag:   typeflag,
+		Name:       file_name,
+		Linkname:   link_name,
+		Size:       file_size,
+		Mode:       file_mode,
+		Uid:        file_uid,
+		Gid:        file_gid,
+		Uname:      "",
+		Gname:      "",
+		ModTime:    teste,
+		AccessTime: teste,
+		ChangeTime: teste,
+		Devmajor:   devmajor,
+		Devminor:   devminor,
+		Magic:      magic,
+		Format:     header_format,
+	}
 	fmt.Printf("%#v\n", header)
 	return entry, nil
 }
