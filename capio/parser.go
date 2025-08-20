@@ -70,33 +70,35 @@ func whatHeaderIsIt(buffer []byte) Format {
 
 func doTheParse(file *os.File) (*Header, error) {
 	header := []byte("")
+	header_len := uint(0)
+	header_end := uint(0)
+	typeflag := nula
 	entry := &Header{}
+
+	var teste time.Time
 
 	/*
 	 * TODO: Determine the block size for the
 	 * device in question for more efficience.
 	 */
 	buffer, _, err := bass.Walk(file, 512)
-	var teste time.Time
 	if err != nil {
 		return nil, err
 	}
 	header_format := whatHeaderIsIt(buffer)
-	header_len := uint(0)
 
-	for i := 0; i < len(buffer); i += 2 {
-		if i == 0 {
-			continue
-		}
-		/* TODO: Fix for afio and odc/original ASCII format. */
-		if (buffer[(i-1)] != nula) &&
-			bytes.Equal(buffer[i:(i+2)], []byte{nula, nula}) {
-			header = buffer[:(i + 2)]
-		}
+	if (header_format & TYPE_BINARY) != 0 {
+		header_len = 26
+	} else if (header_format & TYPE_OCPIO) != 0 {
+		header_len = 76
+	} else if (header_format&TYPE_NCPIO) != 0 ||
+		(header_format&TYPE_CRC) != 0 {
+		header_len = 110
 	}
 
+	header = buffer[:header_len]
+
 	/* These will populate the fields of the Header struct. */
-	typeflag := nula
 	file_name := ""
 	link_name := ""
 	file_size := int64(0)
@@ -115,29 +117,32 @@ func doTheParse(file *os.File) (*Header, error) {
 	 *
 	 * The struct for the New ASCII format differs a little.
 	 */
-	switch header_format & TYPE_BINARY {
-	case 0: /* ASCII, ODC, CRC, etc. */
-		if (header_format & TYPE_OCPIO) != 0 {
-			header_len = 76 /* Broken for now. */
-		} else if (header_format&TYPE_NCPIO) != 0 ||
-			(header_format&TYPE_CRC) != 0 {
-			header_len = 110
+	switch header_format & TYPE_BE {
+	case 0: /* ASCII, ODC, CRC, etc and little endian binary. */
+		header_end = (header_len + uint(bytes.IndexByte(buffer[header_len:], nula)))
+		file_name = string(buffer[header_len:header_end])
+		if file_name[(len(file_name)-1)] == '/' {
+			typeflag = TypeDir
 		}
-		magic = header[:6]
-	default: /* Binary, either little or big endian. */
+		switch header_format & TYPE_BINARY {
+		case 0: /* ASCII, ODC, CRC, etc. */
+			magic = header[:6]
+			goto parsed
+		default:
+			break /* Common binary parsing code. */
+		}
+		fallthrough
+	default:
 		magic = header[:2]
 		switch header_format & TYPE_BE {
-		case 0: /* Little endian. */
+		case 0: /* Binary, little endian. */
 			println("LE")
-		default: /* Big endian. */
+		default: /* Binary, big endian. */
 			println("BE")
 		}
-	}
 
-	file_name = string(header[header_len:(len(header) - 2)])
-	if file_name[(len(file_name) - 1)] == '/' {
-		typeflag = TypeDir
 	}
+	parsed:
 
 	entry = &Header{
 		Typeflag:   typeflag,
