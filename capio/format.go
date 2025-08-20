@@ -14,9 +14,18 @@
  *
  * SPDX-Licence-Identifier: Zlib
  *
+ * The 'Header' struct was partially borrowed from Go's archive/tar.
+ * From archive/tar/common.go copyright header:
+ *
+ * Copyright 2009 The Go Authors. All rights reserved.
+ *
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ *
  */
 
 package capio
+
+import "time"
 
 type Format uint
 
@@ -78,6 +87,45 @@ var formatNames = map[Format]string{
 	HEADER_CRAY:   "CRAY",
 	HEADER_CRAY5:  "CRAY5",
 	HEADER_BAR:    "BAR",
+}
+
+// A Header represents a single header in a cpio archive.
+// Some fields may not be populated.
+type Header struct {
+	// Typeflag is the type of header entry.
+	// The zero value is automatically promoted to either TypeReg or TypeDir
+	// depending on the presence of a trailing slash in Name.
+	Typeflag byte
+
+	Name     string // Name of file entry
+	Linkname string // Target name of link (valid for TypeLink or TypeSymlink)
+
+	Size  int64  // Logical file size in bytes
+	Mode  int64  // Permission and mode bits
+	Uid   int    // User ID of owner
+	Gid   int    // Group ID of owner
+	Uname string // User name of owner
+	Gname string // Group name of owner
+
+	// If the Format is unspecified, then Writer.WriteHeader rounds ModTime
+	// to the nearest second and ignores the AccessTime and ChangeTime fields.
+	ModTime    time.Time // Modification time
+	AccessTime time.Time // Access time
+	ChangeTime time.Time // Change time
+
+	Devmajor int64 // Major device number (valid for TypeChar or TypeBlock)
+	Devminor int64 // Minor device number (valid for TypeChar or TypeBlock)
+
+	// Magic contains a []byte that identifies the archive format
+	// (see 'Format' below).
+	Magic []byte
+
+	// Format specifies the format of the tar header.
+	//
+	// If the format is unspecified when Writer.WriteHeader is called,
+	// then it uses the first format (in the order of USTAR, PAX, GNU)
+	// capable of encoding this Header (see Format).
+	Format Format
 }
 
 func (f Format) String() string {
