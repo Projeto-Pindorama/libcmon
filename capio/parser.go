@@ -22,10 +22,9 @@ import (
 // nula is a null (\0) character.
 var nula = byte(0)
 
-// rawBINHeader, rawODCHeader and rawNEWCHeader are
-// non-exposed structs for making it easier to parse
-// binary/Programmer's Workbench, Old ASCII and New
-// ASCII formats respectively.
+// rawBINHeader and rawASCIIHeader are non-exposed structs
+// for making it easier to parse binary/Programmer's Workbench
+// and Old/New ASCII formats respectively.
 type rawBINHeader struct {
 	h_dev      []byte /* 2 bytes */
 	h_inode    []byte /* 2 bytes */
@@ -39,38 +38,22 @@ type rawBINHeader struct {
 	h_filesize []byte /* 4 bytes */
 }
 
-type rawODCHeader struct {
-	c_dev      []byte /* 6 bytes */
-	c_inode    []byte /* 6 bytes */
-	c_mode     []byte /* 6 bytes */
-	c_uid      []byte /* 6 bytes */
-	c_gid      []byte /* 6 bytes */
-	c_nlink    []byte /* 6 bytes */
-	c_rdev     []byte /* 6 bytes */
-	c_mtime    []byte /* 11 bytes */
-	c_namesize []byte /* 6 bytes */
-	c_filesize []byte /* 11 bytes */
-}
-
-type rawNEWCHeader struct {
-	/*
-	 * With the exception of the magic numbers,
-	 * which are 6 bytes, everything here is
-	 * 8 bytes long.
-	 */
-	c_inode     []byte
-	c_mode      []byte
-	c_uid       []byte
-	c_gid       []byte
-	c_nlink     []byte
-	c_mtime     []byte
-	c_filesize  []byte
-	c_devmajor  []byte
-	c_devminor  []byte
-	c_rdevmajor []byte
-	c_rdevminor []byte
-	c_namesize  []byte
-	c_check     []byte
+type rawASCIIHeader struct {
+	c_dev       []byte /* 6 bytes, ODC specific. */
+	c_inode     []byte /* 6 bytes for ODC, 8 for NEWC. */
+	c_mode      []byte /* 6 bytes for ODC, 8 for NEWC. */
+	c_uid       []byte /* 6 bytes for ODC, 8 for NEWC. */
+	c_gid       []byte /* 6 bytes for ODC, 8 for NEWC. */
+	c_nlink     []byte /* 6 bytes for ODC, 8 for NEWC.*/
+	c_rdev      []byte /* 6 bytes, ODC specific. */
+	c_mtime     []byte /* 11 bytes for ODC, 8 for NEWC. */
+	c_namesize  []byte /* 6 bytes for ODC, 8 for NEWC. */
+	c_filesize  []byte /* 11 bytes for ODC, 8 for NEWC. */
+	c_devmajor  []byte /* 8 bytes, ODC specific. */
+	c_devminor  []byte /* 8 bytes, ODC specific. */
+	c_rdevmajor []byte /* 8 bytes, ODC specific. */
+	c_rdevminor []byte /* 8 bytes, ODC specific. */
+	c_check     []byte /* 8 bytes, ODC specific. */
 }
 
 // whatHeaderIsIt does what its name implies: verifies what
@@ -127,8 +110,7 @@ func doTheParse(file *os.File) (*Header, error) {
 	entry := &Header{}
 
 	/* Sane way to store raw data. */
-	newc_header := rawNEWCHeader{}
-	odc_header := rawODCHeader{}
+	ascii_header := rawASCIIHeader{}
 	bin_header := rawBINHeader{}
 
 	var teste time.Time
@@ -174,12 +156,27 @@ func doTheParse(file *os.File) (*Header, error) {
 		}
 		switch header_format & TYPE_BINARY {
 		case 0: /* ASCII, ODC, CRC, etc. */
+			magic = header[:6]
 			switch header_format & TYPE_OCPIO {
 			case 0: /* New ASCII/CRC. */
+				ascii_header = rawASCIIHeader{
+					c_inode:     header[6:12],
+					c_mode:      header[12:20],
+					c_uid:       header[20:28],
+					c_gid:       header[28:36],
+					c_nlink:     header[36:44],
+					c_mtime:     header[44:52],
+					c_filesize:  header[52:60],
+					c_devmajor:  header[60:68],
+					c_devminor:  header[68:76],
+					c_rdevmajor: header[76:84],
+					c_rdevminor: header[84:92],
+					c_namesize:  header[92:100],
+					c_check:     header[100:108],
+				}
 				fmt.Println("New CPIO")
-				fmt.Printf("%#x\n", newc_header)
 			default: /* ODC. */
-				odc_header = rawODCHeader{c_dev: header[6:12],
+				ascii_header = rawASCIIHeader{c_dev: header[6:12],
 					c_inode:    header[12:18],
 					c_mode:     header[18:24],
 					c_uid:      header[24:30],
@@ -190,9 +187,8 @@ func doTheParse(file *os.File) (*Header, error) {
 					c_namesize: header[53:59],
 					c_filesize: header[59:70],
 				}
-				fmt.Printf("%#x\n", odc_header)
 			}
-			magic = header[:6]
+			fmt.Printf("%#o\n", ascii_header)
 			goto parsed
 		default:
 			break /* Common binary parsing code. */
