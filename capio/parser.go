@@ -107,13 +107,12 @@ func doTheParse(file *os.File) (*Header, error) {
 	header_len := uint(0)
 	header_end := uint(0)
 	typeflag := nula
+	m_time := time.Unix(0, 0)
 	entry := &Header{}
 
 	/* Sane way to store raw data. */
 	ascii_header := rawASCIIHeader{}
 	bin_header := rawBINHeader{}
-
-	var teste time.Time
 
 	/*
 	 * TODO: Determine the block size for the
@@ -139,8 +138,9 @@ func doTheParse(file *os.File) (*Header, error) {
 	/* These will populate the fields of the Header struct. */
 	file_name := ""
 	link_name := ""
-	file_size := int64(0)
-	file_mode := int64(0)
+	name_len := uint16(0)
+	file_size := uint64(0)
+	file_mode := os.FileMode(0)
 	file_uid := 0
 	file_gid := 0
 	devmajor := int64(0)
@@ -210,32 +210,54 @@ func doTheParse(file *os.File) (*Header, error) {
 		}
 		switch header_format & TYPE_BE {
 		case 0: /* Binary, little endian. */
+			/*
+			 * For both h_filesize and h_mtime, we will have to use
+			 * a "middle-endian" format, which can be achieved per
+			 * reordering the []byte array, exchanging the first two
+			 * elements with the last ones.
+			 */
+			file_size = uint64(binary.LittleEndian.Uint32([]byte{
+				bin_header.h_filesize[2],
+				bin_header.h_filesize[3],
+				bin_header.h_filesize[0],
+				bin_header.h_filesize[1],
+			}))
+			mtime := int64(binary.LittleEndian.Uint32([]byte{
+				bin_header.h_mtime[2],
+				bin_header.h_mtime[3],
+				bin_header.h_mtime[0],
+				bin_header.h_mtime[1],
+			}))
+			m_time = time.Unix(mtime, 0)
+			name_len = binary.LittleEndian.Uint16(bin_header.h_namesize)
+			file_mode = os.FileMode(binary.LittleEndian.Uint16(bin_header.h_mode))
+			file_uid = int(binary.LittleEndian.Uint16(bin_header.h_uid))
+			file_gid = int(binary.LittleEndian.Uint16(bin_header.h_gid))
 			println("LE")
 		default: /* Binary, big endian. */
 			println("BE")
 			return nil, ErrHeader
 		}
-		fmt.Printf("%#x\n", bin_header)
+		fmt.Printf("%#o\n", bin_header)
 	}
 parsed: /* Jump falthrough. */
 
 	entry = &Header{
-		Typeflag:   typeflag,
-		Name:       file_name,
-		Linkname:   link_name,
-		Size:       file_size,
-		Mode:       file_mode,
-		Uid:        file_uid,
-		Gid:        file_gid,
-		Uname:      "",
-		Gname:      "",
-		ModTime:    teste,
-		AccessTime: teste,
-		ChangeTime: teste,
-		Devmajor:   devmajor,
-		Devminor:   devminor,
-		Magic:      magic,
-		Format:     header_format,
+		Typeflag: typeflag,
+		Name:     file_name,
+		Linkname: link_name,
+		Namelen:  name_len,
+		Size:     file_size,
+		Mode:     file_mode,
+		Uid:      file_uid,
+		Gid:      file_gid,
+		Uname:    "",
+		Gname:    "",
+		ModTime:  m_time,
+		Devmajor: devmajor,
+		Devminor: devminor,
+		Magic:    magic,
+		Format:   header_format,
 	}
 	return entry, nil
 }
@@ -245,5 +267,5 @@ func CallFromTest(file *os.File) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
 	}
-	fmt.Printf("%#v\n", entry)
+	fmt.Printf("%v\n", entry)
 }
