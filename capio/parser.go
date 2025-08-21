@@ -49,11 +49,11 @@ type rawASCIIHeader struct {
 	c_mtime     []byte /* 11 bytes for ODC, 8 for NEWC. */
 	c_namesize  []byte /* 6 bytes for ODC, 8 for NEWC. */
 	c_filesize  []byte /* 11 bytes for ODC, 8 for NEWC. */
-	c_devmajor  []byte /* 8 bytes, ODC specific. */
-	c_devminor  []byte /* 8 bytes, ODC specific. */
-	c_rdevmajor []byte /* 8 bytes, ODC specific. */
-	c_rdevminor []byte /* 8 bytes, ODC specific. */
-	c_check     []byte /* 8 bytes, ODC specific. */
+	c_devmajor  []byte /* 8 bytes, NEWC specific. */
+	c_devminor  []byte /* 8 bytes, NEWC specific. */
+	c_rdevmajor []byte /* 8 bytes, NEWC specific. */
+	c_rdevminor []byte /* 8 bytes, NEWC specific. */
+	c_check     []byte /* 8 bytes, NEWC specific. */
 }
 
 // whatHeaderIsIt does what its name implies: verifies what
