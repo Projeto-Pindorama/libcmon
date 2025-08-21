@@ -19,8 +19,59 @@ import (
 	"time"
 )
 
-/* nula is a null (\0) character. */
+// nula is a null (\0) character.
 var nula = byte(0)
+
+// rawBINHeader, rawODCHeader and rawNEWCHeader are
+// non-exposed structs for making it easier to parse
+// binary/Programmer's Workbench, Old ASCII and New
+// ASCII formats respectively.
+type rawBINHeader struct {
+	h_dev      []byte /* 2 bytes */
+	h_inode    []byte /* 2 bytes */
+	h_mode     []byte /* 2 bytes */
+	h_uid      []byte /* 2 bytes */
+	h_gid      []byte /* 2 bytes */
+	h_nlink    []byte /* 2 bytes */
+	h_majmin   []byte /* 2 bytes */
+	h_mtime    []byte /* 4 bytes */
+	h_namesize []byte /* 2 bytes */
+	h_filesize []byte /* 4 bytes */
+}
+
+type rawODCHeader struct {
+	c_dev      []byte /* 6 bytes */
+	c_inode    []byte /* 6 bytes */
+	c_mode     []byte /* 6 bytes */
+	c_uid      []byte /* 6 bytes */
+	c_gid      []byte /* 6 bytes */
+	c_nlink    []byte /* 6 bytes */
+	c_rdev     []byte /* 6 bytes */
+	c_mtime    []byte /* 11 bytes */
+	c_namesize []byte /* 6 bytes */
+	c_filesize []byte /* 11 bytes */
+}
+
+type rawNEWCHeader struct {
+	/*
+	 * With the exception of the magic numbers,
+	 * which are 6 bytes, everything here is
+	 * 8 bytes long.
+	 */
+	c_inode     []byte
+	c_mode      []byte
+	c_uid       []byte
+	c_gid       []byte
+	c_nlink     []byte
+	c_mtime     []byte
+	c_filesize  []byte
+	c_devmajor  []byte
+	c_devminor  []byte
+	c_rdevmajor []byte
+	c_rdevminor []byte
+	c_namesize  []byte
+	c_check     []byte
+}
 
 // whatHeaderIsIt does what its name implies: verifies what
 // the cpio header is. It correlates the magic number with
@@ -75,6 +126,11 @@ func doTheParse(file *os.File) (*Header, error) {
 	typeflag := nula
 	entry := &Header{}
 
+	/* Sane way to store raw data. */
+	newc_header := rawNEWCHeader{}
+	odc_header := rawODCHeader{}
+	bin_header := rawBINHeader{}
+
 	var teste time.Time
 
 	/*
@@ -109,14 +165,6 @@ func doTheParse(file *os.File) (*Header, error) {
 	devminor := int64(0)
 	magic := []byte("")
 
-	/*
-	 * The header format goes around this:
-	 * 	    M  D  I  Md U  G  nL Mn T  Ns Fsz
-	 * Binary: [2][2][2][2][2][2][2][2][4][2][4]
-	 * ASCII:  [6][6][6][6][6][6][6][6][11][6][11]
-	 *
-	 * The struct for the New ASCII format differs a little.
-	 */
 	switch header_format & TYPE_BE {
 	case 0: /* ASCII, ODC, CRC, etc and little endian binary. */
 		header_end = (header_len + uint(bytes.IndexByte(buffer[header_len:], nula)))
@@ -126,6 +174,24 @@ func doTheParse(file *os.File) (*Header, error) {
 		}
 		switch header_format & TYPE_BINARY {
 		case 0: /* ASCII, ODC, CRC, etc. */
+			switch header_format & TYPE_OCPIO {
+			case 0: /* New ASCII/CRC. */
+				fmt.Println("New CPIO")
+				fmt.Printf("%#x\n", newc_header)
+			default: /* ODC. */
+				odc_header = rawODCHeader{c_dev: header[6:12],
+					c_inode:    header[12:18],
+					c_mode:     header[18:24],
+					c_uid:      header[24:30],
+					c_gid:      header[30:36],
+					c_nlink:    header[30:36],
+					c_rdev:     header[36:42],
+					c_mtime:    header[42:53],
+					c_namesize: header[53:59],
+					c_filesize: header[59:70],
+				}
+				fmt.Printf("%#x\n", odc_header)
+			}
 			magic = header[:6]
 			goto parsed
 		default:
@@ -138,11 +204,11 @@ func doTheParse(file *os.File) (*Header, error) {
 		case 0: /* Binary, little endian. */
 			println("LE")
 		default: /* Binary, big endian. */
-			println("BE")
+			return nil, ErrHeader /* Not implemented yet. */
 		}
-
+		fmt.Printf("%#x\n", bin_header)
 	}
-	parsed:
+parsed: /* Jump falthrough. */
 
 	entry = &Header{
 		Typeflag:   typeflag,
@@ -162,7 +228,6 @@ func doTheParse(file *os.File) (*Header, error) {
 		Magic:      magic,
 		Format:     header_format,
 	}
-	fmt.Printf("%#v\n", header)
 	return entry, nil
 }
 
