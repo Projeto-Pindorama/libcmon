@@ -1,7 +1,7 @@
 /*
  * porcelana/bengala.go - Walking-stick-functions for avoiding repetition
  *
- * Copyright (C) 2024: Pindorama
+ * Copyright (C) 2025: Pindorama
  *		Luiz Antônio Rangel (takusuman)
  *
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -10,7 +10,23 @@
 
 package prcl
 
-import "reflect"
+import (
+	"encoding/binary"
+	"reflect"
+)
+
+/* Just for the interface */
+type mixedEndian struct{}
+var MixedEndian mixedEndian
+
+func (mixedEndian) Uint32(data []byte) uint32 {
+	return binary.LittleEndian.Uint32([]byte{
+		data[2],
+		data[3],
+		data[0],
+		data[1],
+	})
+}
 
 // IntWidth matches the integer width number for
 // a integer passed per reflect.Kind.
