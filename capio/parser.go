@@ -197,22 +197,23 @@ func doTheParse(file *os.File) (*Header, error) {
 	default:
 		magic = header[:2]
 		bin_header = rawBINHeader{
-			h_dev: header[2:4],
-			h_inode: header[4:6],
-			h_mode: header[6:8],
-			h_uid:header[8:10],
-			h_gid:header[10:12],
-			h_nlink:header[12:14],
-			h_majmin:header[14:16],
-			h_mtime:header[16:20],
-			h_namesize:header[20:22],
-			h_filesize:header[22:26],
+			h_dev:      header[2:4],
+			h_inode:    header[4:6],
+			h_mode:     header[6:8],
+			h_uid:      header[8:10],
+			h_gid:      header[10:12],
+			h_nlink:    header[12:14],
+			h_majmin:   header[14:16],
+			h_mtime:    header[16:20],
+			h_namesize: header[20:22],
+			h_filesize: header[22:26],
 		}
 		switch header_format & TYPE_BE {
 		case 0: /* Binary, little endian. */
 			println("LE")
 		default: /* Binary, big endian. */
-			return nil, ErrHeader /* Not implemented yet. */
+			println("BE")
+			return nil, ErrHeader
 		}
 		fmt.Printf("%#x\n", bin_header)
 	}
