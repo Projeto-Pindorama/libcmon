@@ -26,7 +26,10 @@
 
 package capio
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 type Format uint
 
@@ -118,15 +121,15 @@ type Header struct {
 	 */
 	Typeflag byte
 
-	Name     string /* Name of file entry */
-	Linkname string /* Target name of link (valid for TypeLink or TypeSymlink) */
-
-	Size  int64  /* Logical file size in bytes */
-	Mode  int64  /* Permission and mode bits */
-	Uid   int    /* User ID of owner */
-	Gid   int    /* Group ID of owner */
-	Uname string /* User name of owner */
-	Gname string /* Group name of owner */
+	Name     string      /* Name of file entry */
+	Linkname string      /* Target name of link (valid for TypeLink or TypeSymlink) */
+	Namelen  uint16      /* Length of the file name */
+	Size     uint64      /* Logical file size in bytes */
+	Mode     os.FileMode /* Permission and mode bits */
+	Uid      int         /* User ID of owner */
+	Gid      int         /* Group ID of owner */
+	Uname    string      /* User name of owner */
+	Gname    string      /* Group name of owner */
 
 	/*
 	 * If the Format is unspecified, then Writer.WriteHeader rounds ModTime
