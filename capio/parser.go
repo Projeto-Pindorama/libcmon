@@ -19,6 +19,7 @@ import (
 
 	"golang.org/x/sys/unix"
 	"pindorama.net.br/libcmon/bass"
+	"pindorama.net.br/libcmon/porcelana"
 )
 
 // nula is a null (\0) character.
@@ -216,22 +217,11 @@ func doTheParse(file *os.File) (*Header, error) {
 			file_gid = int(binary.LittleEndian.Uint16(bin_header.h_gid))
 			/*
 			 * For both h_filesize and h_mtime, we will have to use
-			 * a "middle-endian" format, which can be achieved per
-			 * reordering the []byte array, exchanging the first two
-			 * elements with the last ones.
+			 * a "middle-endian" format. For more detail, check code
+			 * for the 'prcl' package.
 			 */
-			file_size = uint64(binary.LittleEndian.Uint32([]byte{
-				bin_header.h_filesize[2],
-				bin_header.h_filesize[3],
-				bin_header.h_filesize[0],
-				bin_header.h_filesize[1],
-			}))
-			mtime := int64(binary.LittleEndian.Uint32([]byte{
-				bin_header.h_mtime[2],
-				bin_header.h_mtime[3],
-				bin_header.h_mtime[0],
-				bin_header.h_mtime[1],
-			}))
+			file_size = uint64(prcl.MixedEndian.Uint32(bin_header.h_filesize))
+			mtime := int64(prcl.MixedEndian.Uint32(bin_header.h_mtime))
 			m_time = time.Unix(mtime, 0)
 
 			/* Major and minor numbers. */
