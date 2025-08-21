@@ -17,6 +17,9 @@ import (
 
 /* Just for the interface */
 type mixedEndian struct{}
+
+// MixedEndian is used on little-endian systems
+// to store 32-bit integers in two 16-bit blocks.
 var MixedEndian mixedEndian
 
 func (mixedEndian) Uint32(data []byte) uint32 {
