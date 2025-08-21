@@ -15,8 +15,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-	"pindorama.net.br/libcmon/bass"
 	"time"
+
+	"golang.org/x/sys/unix"
+	"pindorama.net.br/libcmon/bass"
 )
 
 // nula is a null (\0) character.
@@ -103,11 +105,8 @@ func whatHeaderIsIt(buffer []byte) Format {
  */
 
 func doTheParse(file *os.File) (*Header, error) {
-	header := []byte("")
 	header_len := uint(0)
 	header_end := uint(0)
-	typeflag := nula
-	m_time := time.Unix(0, 0)
 	entry := &Header{}
 
 	/* Sane way to store raw data. */
@@ -133,9 +132,9 @@ func doTheParse(file *os.File) (*Header, error) {
 		header_len = 110
 	}
 
-	header = buffer[:header_len]
-
 	/* These will populate the fields of the Header struct. */
+	header := buffer[:header_len]
+	typeflag := nula
 	file_name := ""
 	link_name := ""
 	name_len := uint16(0)
@@ -143,8 +142,9 @@ func doTheParse(file *os.File) (*Header, error) {
 	file_mode := os.FileMode(0)
 	file_uid := 0
 	file_gid := 0
-	devmajor := int64(0)
-	devminor := int64(0)
+	m_time := time.Unix(0, 0)
+	devmajor := uint32(0)
+	devminor := uint32(0)
 	magic := []byte("")
 
 	switch header_format & TYPE_BE {
@@ -210,6 +210,10 @@ func doTheParse(file *os.File) (*Header, error) {
 		}
 		switch header_format & TYPE_BE {
 		case 0: /* Binary, little endian. */
+			name_len = binary.LittleEndian.Uint16(bin_header.h_namesize)
+			file_mode = os.FileMode(binary.LittleEndian.Uint16(bin_header.h_mode))
+			file_uid = int(binary.LittleEndian.Uint16(bin_header.h_uid))
+			file_gid = int(binary.LittleEndian.Uint16(bin_header.h_gid))
 			/*
 			 * For both h_filesize and h_mtime, we will have to use
 			 * a "middle-endian" format, which can be achieved per
@@ -229,16 +233,15 @@ func doTheParse(file *os.File) (*Header, error) {
 				bin_header.h_mtime[1],
 			}))
 			m_time = time.Unix(mtime, 0)
-			name_len = binary.LittleEndian.Uint16(bin_header.h_namesize)
-			file_mode = os.FileMode(binary.LittleEndian.Uint16(bin_header.h_mode))
-			file_uid = int(binary.LittleEndian.Uint16(bin_header.h_uid))
-			file_gid = int(binary.LittleEndian.Uint16(bin_header.h_gid))
-			println("LE")
+
+			/* Major and minor numbers. */
+			majmin := uint64(binary.LittleEndian.Uint16(bin_header.h_majmin))
+			devmajor = unix.Major(majmin)
+			devminor = unix.Minor(majmin)
 		default: /* Binary, big endian. */
 			println("BE")
 			return nil, ErrHeader
 		}
-		fmt.Printf("%#o\n", bin_header)
 	}
 parsed: /* Jump falthrough. */
 
