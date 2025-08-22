@@ -132,6 +132,7 @@ func doTheParse(file *os.File) (*Header, error) {
 		(header_format&TYPE_CRC) != 0 {
 		header_len = 110
 	}
+	header_end = (header_len + uint(bytes.IndexByte(buffer[header_len:], nula)))
 
 	/* These will populate the fields of the Header struct. */
 	header := buffer[:header_len]
@@ -148,13 +149,12 @@ func doTheParse(file *os.File) (*Header, error) {
 	devminor := uint32(0)
 	magic := []byte("")
 
+	file_name = string(buffer[header_len:header_end])
+	if file_name[(len(file_name)-1)] == '/' {
+		typeflag = TypeDir
+	}
 	switch header_format & TYPE_BE {
 	case 0: /* ASCII, ODC, CRC, etc and little endian binary. */
-		header_end = (header_len + uint(bytes.IndexByte(buffer[header_len:], nula)))
-		file_name = string(buffer[header_len:header_end])
-		if file_name[(len(file_name)-1)] == '/' {
-			typeflag = TypeDir
-		}
 		switch header_format & TYPE_BINARY {
 		case 0: /* ASCII, ODC, CRC, etc. */
 			magic = header[:6]
@@ -229,8 +229,16 @@ func doTheParse(file *os.File) (*Header, error) {
 			devmajor = unix.Major(majmin)
 			devminor = unix.Minor(majmin)
 		default: /* Binary, big endian. */
-			println("BE")
-			return nil, ErrHeader
+			name_len = binary.BigEndian.Uint16(bin_header.h_namesize)
+			file_mode = os.FileMode(binary.BigEndian.Uint16(bin_header.h_mode))
+			file_uid = int(binary.BigEndian.Uint16(bin_header.h_uid))
+			file_gid = int(binary.BigEndian.Uint16(bin_header.h_gid))
+			file_size = uint64(binary.BigEndian.Uint32(bin_header.h_filesize))
+			mtime := int64(binary.BigEndian.Uint32(bin_header.h_mtime))
+			m_time = time.Unix(mtime, 0)
+			majmin := uint64(binary.LittleEndian.Uint16(bin_header.h_majmin))
+			devmajor = unix.Major(majmin)
+			devminor = unix.Minor(majmin)
 		}
 	}
 parsed: /* Jump falthrough. */
