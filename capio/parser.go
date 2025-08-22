@@ -153,48 +153,41 @@ func doTheParse(file *os.File) (*Header, error) {
 	if file_name[(len(file_name)-1)] == '/' {
 		typeflag = TypeDir
 	}
-	switch header_format & TYPE_BE {
-	case 0: /* ASCII, ODC, CRC, etc and little endian binary. */
-		switch header_format & TYPE_BINARY {
-		case 0: /* ASCII, ODC, CRC, etc. */
-			magic = header[:6]
-			switch header_format & TYPE_OCPIO {
-			case 0: /* New ASCII/CRC. */
-				ascii_header = rawASCIIHeader{
-					c_inode:     header[6:12],
-					c_mode:      header[12:20],
-					c_uid:       header[20:28],
-					c_gid:       header[28:36],
-					c_nlink:     header[36:44],
-					c_mtime:     header[44:52],
-					c_filesize:  header[52:60],
-					c_devmajor:  header[60:68],
-					c_devminor:  header[68:76],
-					c_rdevmajor: header[76:84],
-					c_rdevminor: header[84:92],
-					c_namesize:  header[92:100],
-					c_check:     header[100:108],
-				}
-				fmt.Println("New CPIO")
-			default: /* ODC. */
-				ascii_header = rawASCIIHeader{c_dev: header[6:12],
-					c_inode:    header[12:18],
-					c_mode:     header[18:24],
-					c_uid:      header[24:30],
-					c_gid:      header[30:36],
-					c_nlink:    header[30:36],
-					c_rdev:     header[36:42],
-					c_mtime:    header[42:53],
-					c_namesize: header[53:59],
-					c_filesize: header[59:70],
-				}
+	switch header_format & TYPE_BINARY {
+	case 0: /* ASCII, ODC, CRC, etc. */
+		magic = header[:6]
+		switch header_format & TYPE_OCPIO {
+		case 0: /* New ASCII/CRC. */
+			ascii_header = rawASCIIHeader{
+				c_inode:     header[6:12],
+				c_mode:      header[12:20],
+				c_uid:       header[20:28],
+				c_gid:       header[28:36],
+				c_nlink:     header[36:44],
+				c_mtime:     header[44:52],
+				c_filesize:  header[52:60],
+				c_devmajor:  header[60:68],
+				c_devminor:  header[68:76],
+				c_rdevmajor: header[76:84],
+				c_rdevminor: header[84:92],
+				c_namesize:  header[92:100],
+				c_check:     header[100:108],
 			}
-			fmt.Printf("%#o\n", ascii_header)
-			goto parsed
-		default:
-			break /* Common binary parsing code. */
+			fmt.Println("New CPIO")
+		default: /* ODC. */
+			ascii_header = rawASCIIHeader{c_dev: header[6:12],
+				c_inode:    header[12:18],
+				c_mode:     header[18:24],
+				c_uid:      header[24:30],
+				c_gid:      header[30:36],
+				c_nlink:    header[30:36],
+				c_rdev:     header[36:42],
+				c_mtime:    header[42:53],
+				c_namesize: header[53:59],
+				c_filesize: header[59:70],
+			}
 		}
-		fallthrough
+		fmt.Printf("%#o\n", ascii_header)
 	default:
 		magic = header[:2]
 		bin_header = rawBINHeader{
@@ -209,7 +202,16 @@ func doTheParse(file *os.File) (*Header, error) {
 			h_namesize: header[20:22],
 			h_filesize: header[22:26],
 		}
-		switch header_format & TYPE_BE {
+
+		/*
+		 * These will be used as medium before being
+		 * finally converted for the Header struct.
+		 * Perhaps this could be simpler, but who knows?
+		 */
+		mtime := uint32(0)
+		majmin := uint16(0)
+	
+		switch (header_format & TYPE_BE) {
 		case 0: /* Binary, little endian. */
 			name_len = binary.LittleEndian.Uint16(bin_header.h_namesize)
 			file_mode = os.FileMode(binary.LittleEndian.Uint16(bin_header.h_mode))
@@ -221,27 +223,23 @@ func doTheParse(file *os.File) (*Header, error) {
 			 * for the 'prcl' package.
 			 */
 			file_size = uint64(prcl.MixedEndian.Uint32(bin_header.h_filesize))
-			mtime := int64(prcl.MixedEndian.Uint32(bin_header.h_mtime))
-			m_time = time.Unix(mtime, 0)
+			mtime = prcl.MixedEndian.Uint32(bin_header.h_mtime)
 
 			/* Major and minor numbers. */
-			majmin := uint64(binary.LittleEndian.Uint16(bin_header.h_majmin))
-			devmajor = unix.Major(majmin)
-			devminor = unix.Minor(majmin)
+			majmin = binary.LittleEndian.Uint16(bin_header.h_majmin)
 		default: /* Binary, big endian. */
 			name_len = binary.BigEndian.Uint16(bin_header.h_namesize)
 			file_mode = os.FileMode(binary.BigEndian.Uint16(bin_header.h_mode))
 			file_uid = int(binary.BigEndian.Uint16(bin_header.h_uid))
 			file_gid = int(binary.BigEndian.Uint16(bin_header.h_gid))
 			file_size = uint64(binary.BigEndian.Uint32(bin_header.h_filesize))
-			mtime := int64(binary.BigEndian.Uint32(bin_header.h_mtime))
-			m_time = time.Unix(mtime, 0)
-			majmin := uint64(binary.LittleEndian.Uint16(bin_header.h_majmin))
-			devmajor = unix.Major(majmin)
-			devminor = unix.Minor(majmin)
+			mtime = binary.BigEndian.Uint32(bin_header.h_mtime)
+			majmin = binary.BigEndian.Uint16(bin_header.h_majmin)
 		}
+		m_time = time.Unix(int64(mtime), 0)
+		devmajor = unix.Major(uint64(majmin))
+		devminor = unix.Minor(uint64(majmin))
 	}
-parsed: /* Jump falthrough. */
 
 	entry = &Header{
 		Typeflag: typeflag,
