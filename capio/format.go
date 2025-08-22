@@ -128,8 +128,6 @@ type Header struct {
 	Mode     os.FileMode /* Permission and mode bits */
 	Uid      int         /* User ID of owner */
 	Gid      int         /* Group ID of owner */
-	Uname    string      /* User name of owner */
-	Gname    string      /* Group name of owner */
 
 	/*
 	 * If the Format is unspecified, then Writer.WriteHeader rounds ModTime

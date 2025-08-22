@@ -250,8 +250,6 @@ func doTheParse(file *os.File) (*Header, error) {
 		Mode:     file_mode,
 		Uid:      file_uid,
 		Gid:      file_gid,
-		Uname:    "",
-		Gname:    "",
 		ModTime:  m_time,
 		Devmajor: devmajor,
 		Devminor: devminor,
