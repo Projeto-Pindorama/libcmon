@@ -34,18 +34,29 @@ func (mixedEndian) Uint32(data []byte) uint32 {
 
 // OctalToInt converts a octal number contained in a []byte to int64.
 func OctalToInt(data []byte) int64 {
+	c := uint(0)
 	val := int64(0)
 
-	for c, i := (len(data) - 1), 0; i < len(data); i++ {
+	for j := 0; j < len(data); j++ {
+		switch {
+		case '0' <= data[j] && data[j] <= '7':
+			c += 1
+		default:
+			continue
+		}
+
+	}
+	c -= 1
+
+	for i := 0; i < len(data); i++ {
 		switch {
 		case '0' <= data[i] && data[i] <= '7':
 			cs := int64(math.Pow(float64(8), float64(c)))
 			val += int64((data[i] - '0')) * cs
-		default:
 			c -= 1
+		default:
 			continue
 		}
-		c -= 1
 	}
 	return val
 }
