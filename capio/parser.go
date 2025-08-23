@@ -159,23 +159,25 @@ func doTheParse(file *os.File) (*Header, error) {
 		switch header_format & TYPE_OCPIO {
 		case 0: /* New ASCII/CRC. */
 			ascii_header = rawASCIIHeader{
-				c_inode:     header[6:12],
-				c_mode:      header[12:20],
-				c_uid:       header[20:28],
-				c_gid:       header[28:36],
-				c_nlink:     header[36:44],
-				c_mtime:     header[44:52],
-				c_filesize:  header[52:60],
-				c_devmajor:  header[60:68],
-				c_devminor:  header[68:76],
-				c_rdevmajor: header[76:84],
-				c_rdevminor: header[84:92],
-				c_namesize:  header[92:100],
-				c_check:     header[100:108],
+				c_inode:     header[6:14],
+				c_mode:      header[14:22],
+				c_uid:       header[22:30],
+				c_gid:       header[30:38],
+				c_nlink:     header[38:46],
+				c_mtime:     header[46:54],
+				c_filesize:  header[54:62],
+				c_devmajor:  header[62:70],
+				c_devminor:  header[70:78],
+				c_rdevmajor: header[78:86],
+				c_rdevminor: header[86:94],
+				c_namesize:  header[94:102],
+				c_check:     header[102:110],
 			}
+
 			fmt.Println("New CPIO")
 		default: /* ODC. */
-			ascii_header = rawASCIIHeader{c_dev: header[6:12],
+			ascii_header = rawASCIIHeader{
+				c_dev: header[6:12],
 				c_inode:    header[12:18],
 				c_mode:     header[18:24],
 				c_uid:      header[24:30],
@@ -186,8 +188,13 @@ func doTheParse(file *os.File) (*Header, error) {
 				c_namesize: header[53:59],
 				c_filesize: header[59:70],
 			}
+			name_len = uint16(prcl.OctalToInt(ascii_header.c_namesize))
+			file_mode = os.FileMode(prcl.OctalToInt(ascii_header.c_mode))
+			file_uid = int(prcl.OctalToInt(ascii_header.c_uid))
+			file_gid = int(prcl.OctalToInt(ascii_header.c_gid))
+			file_size = uint64(prcl.OctalToInt(ascii_header.c_filesize))
+			m_time = time.Unix(prcl.OctalToInt(ascii_header.c_mtime), 0)
 		}
-		fmt.Printf("%#o\n", ascii_header)
 	default:
 		magic = header[:2]
 		bin_header = rawBINHeader{
@@ -264,5 +271,5 @@ func CallFromTest(file *os.File) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
 	}
-	fmt.Printf("%v\n", entry)
+	fmt.Printf("%+v\n", entry)
 }
