@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"strconv"
 
 	"golang.org/x/sys/unix"
 	"pindorama.net.br/libcmon/bass"
@@ -182,18 +183,23 @@ func doTheParse(file *os.File) (*Header, error) {
 				c_mode:     header[18:24],
 				c_uid:      header[24:30],
 				c_gid:      header[30:36],
-				c_nlink:    header[30:36],
-				c_rdev:     header[36:42],
-				c_mtime:    header[42:53],
-				c_namesize: header[53:59],
-				c_filesize: header[59:70],
+				c_nlink:    header[36:42],
+				c_rdev:     header[42:48],
+				c_mtime:    header[48:59],
+				c_namesize: header[59:65],
+				c_filesize: header[65:76],
 			}
+			fmt.Printf("%+s\n", ascii_header)
+			fmt.Printf("%s\n", string(ascii_header.c_namesize))
 			name_len = uint16(prcl.OctalToInt(ascii_header.c_namesize))
 			file_mode = os.FileMode(prcl.OctalToInt(ascii_header.c_mode))
 			file_uid = int(prcl.OctalToInt(ascii_header.c_uid))
 			file_gid = int(prcl.OctalToInt(ascii_header.c_gid))
 			file_size = uint64(prcl.OctalToInt(ascii_header.c_filesize))
 			m_time = time.Unix(prcl.OctalToInt(ascii_header.c_mtime), 0)
+
+			n, _ := strconv.ParseInt(string(ascii_header.c_namesize), 8, 64)
+			fmt.Printf("%s\n", n, file_uid) 
 		}
 	default:
 		magic = header[:2]
