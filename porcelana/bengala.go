@@ -12,8 +12,8 @@ package prcl
 
 import (
 	"encoding/binary"
-	"math"
 	"reflect"
+	"strconv"
 )
 
 /* Just for the interface */
@@ -32,31 +32,83 @@ func (mixedEndian) Uint32(data []byte) uint32 {
 	})
 }
 
-// OctalToInt converts a octal number contained in a []byte to int64.
+// OctalToInt converts an octal number (a.k.a. base-8)
+// contained in a []byte to int64.
 func OctalToInt(data []byte) int64 {
-	c := uint(0)
-	val := int64(0)
+	numstr := ""
 
+	/*
+	 * Clean string so obtaining foolish-induced errors from
+	 * strconv is unnecessary.
+	 */
 	for j := 0; j < len(data); j++ {
 		switch {
 		case '0' <= data[j] && data[j] <= '7':
-			c += 1
+			numstr += string(data[j])
 		default:
 			continue
 		}
-
 	}
-	c -= 1
 
-	for i := 0; i < len(data); i++ {
+	val, err := strconv.ParseInt(numstr, 8, 64)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
+// HexaToInt converts a hexadecimal number (a.k.a. base-16)
+// contained in a []byte array into a int64.
+func HexaToInt(data []byte) int64 {
+	tdata := []byte("")
+	numstr := ""
+	j := int(0)
+
+	/* Jump '0x', since it is considered invalid by strconv. */
+	if string(data[:2]) == "0x" {
+		j += 2
+	}
+
+	/*
+	 * All to uppercase.
+	 * We can also exclude actually undesired characters now,
+	 * such as spaces/blanks, before treating it further below.
+	 */
+	for ; j < len(data); j++ {
+		if data[j] == ' ' {
+			continue
+		} else if 'a' <= data[j] && data[j] <= 'z' {
+			tdata = append(tdata, (data[j] - 32))
+			continue
+		}
+		tdata = append(tdata, data[j])
+	}
+
+	/*
+	 * Clean string so obtaining foolish-induced errors from
+	 * strconv is unnecessary.
+	 */
+	for i := 0; i < len(tdata); i++ {
 		switch {
-		case '0' <= data[i] && data[i] <= '7':
-			cs := int64(math.Pow(float64(8), float64(c)))
-			val += int64((data[i] - '0')) * cs
-			c -= 1
+		case ('0' <= tdata[i] && tdata[i] <= '9') ||
+			('A' <= tdata[i] && tdata[i] <= 'F'):
+			numstr += string(tdata[i])
 		default:
 			continue
 		}
+	}
+
+	/*
+	 * Just like OctalToInt, use Go stdlib's strconv function for actually
+	 * converting the hexadecimal string into a integer, since it will be
+	 * far more competent than something we could implement from scratch
+	 * using the crude logic that we learn at our's university courses ---
+	 * and as competent as the implementation that we could've borrowed and
+	 * adapted from Heirloom's cpio.
+	 */
+	val, err := strconv.ParseInt(numstr, 16, 64)
+	if err != nil {
+		panic(err)
 	}
 	return val
 }
