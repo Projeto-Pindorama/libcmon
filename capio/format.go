@@ -137,8 +137,10 @@ type Header struct {
 	AccessTime time.Time /* Access time */
 	ChangeTime time.Time /* Change time */
 
-	Devmajor uint32 /* Major device number (valid for TypeChar or TypeBlock) */
-	Devminor uint32 /* Minor device number (valid for TypeChar or TypeBlock) */
+	Devmajor    uint32 /* Major device number (valid for TypeLink) */
+	Devminor    uint32 /* Minor device number (valid for TypeLink) */
+	RawDevmajor uint32 /* Major for raw device number (valid for TypeBlock or TypeChar) */
+	RawDevminor uint32 /* Minor for raw device number (valid for TypeBlock or TypeChar) */
 
 	/*
 	 * Magic contains a []byte that identifies the archive format

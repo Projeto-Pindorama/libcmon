@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"strconv"
 
 	"golang.org/x/sys/unix"
 	"pindorama.net.br/libcmon/bass"
@@ -148,6 +147,8 @@ func doTheParse(file *os.File) (*Header, error) {
 	m_time := time.Unix(0, 0)
 	devmajor := uint32(0)
 	devminor := uint32(0)
+	rdevmajor := uint32(0)
+	rdevminor := uint32(0)
 	magic := []byte("")
 
 	file_name = string(buffer[header_len:header_end])
@@ -157,6 +158,16 @@ func doTheParse(file *os.File) (*Header, error) {
 	switch header_format & TYPE_BINARY {
 	case 0: /* ASCII, ODC, CRC, etc. */
 		magic = header[:6]
+
+		/*
+		 * Just used as medium for being passed
+		 * into the Header struct.
+		 */
+		devmaj := uint64(0)
+		devmin := uint64(0)
+		rdevmaj := uint64(0)
+		rdevmin := uint64(0)
+
 		switch header_format & TYPE_OCPIO {
 		case 0: /* New ASCII/CRC. */
 			ascii_header = rawASCIIHeader{
@@ -175,10 +186,19 @@ func doTheParse(file *os.File) (*Header, error) {
 				c_check:     header[102:110],
 			}
 
-			fmt.Println("New CPIO")
+			name_len = uint16(prcl.HexaToInt(ascii_header.c_namesize))
+			file_mode = os.FileMode(prcl.HexaToInt(ascii_header.c_mode))
+			file_uid = int(prcl.HexaToInt(ascii_header.c_uid))
+			file_gid = int(prcl.HexaToInt(ascii_header.c_gid))
+			file_size = uint64(prcl.HexaToInt(ascii_header.c_filesize))
+			m_time = time.Unix(prcl.HexaToInt(ascii_header.c_mtime), 0)
+			devmaj = uint64(prcl.HexaToInt(ascii_header.c_devmajor))
+			devmin = uint64(prcl.HexaToInt(ascii_header.c_devminor))
+			rdevmaj = uint64(prcl.HexaToInt(ascii_header.c_rdevmajor))
+			rdevmin = uint64(prcl.HexaToInt(ascii_header.c_rdevminor))
 		default: /* ODC. */
 			ascii_header = rawASCIIHeader{
-				c_dev: header[6:12],
+				c_dev:      header[6:12],
 				c_inode:    header[12:18],
 				c_mode:     header[18:24],
 				c_uid:      header[24:30],
@@ -189,18 +209,20 @@ func doTheParse(file *os.File) (*Header, error) {
 				c_namesize: header[59:65],
 				c_filesize: header[65:76],
 			}
-			fmt.Printf("%+s\n", ascii_header)
-			fmt.Printf("%s\n", string(ascii_header.c_namesize))
 			name_len = uint16(prcl.OctalToInt(ascii_header.c_namesize))
 			file_mode = os.FileMode(prcl.OctalToInt(ascii_header.c_mode))
 			file_uid = int(prcl.OctalToInt(ascii_header.c_uid))
 			file_gid = int(prcl.OctalToInt(ascii_header.c_gid))
 			file_size = uint64(prcl.OctalToInt(ascii_header.c_filesize))
 			m_time = time.Unix(prcl.OctalToInt(ascii_header.c_mtime), 0)
-
-			n, _ := strconv.ParseInt(string(ascii_header.c_namesize), 8, 64)
-			fmt.Printf("%s\n", n, file_uid) 
+			rdevmaj = uint64(prcl.OctalToInt(ascii_header.c_rdev))
+			rdevmin = rdevmaj
 		}
+
+		devmajor = unix.Major(devmaj)
+		devminor = unix.Minor(devmin)
+		rdevmajor = unix.Major(rdevmaj)
+		rdevminor = unix.Minor(rdevmin)
 	default:
 		magic = header[:2]
 		bin_header = rawBINHeader{
@@ -223,8 +245,8 @@ func doTheParse(file *os.File) (*Header, error) {
 		 */
 		mtime := uint32(0)
 		majmin := uint16(0)
-	
-		switch (header_format & TYPE_BE) {
+
+		switch header_format & TYPE_BE {
 		case 0: /* Binary, little endian. */
 			name_len = binary.LittleEndian.Uint16(bin_header.h_namesize)
 			file_mode = os.FileMode(binary.LittleEndian.Uint16(bin_header.h_mode))
@@ -249,25 +271,28 @@ func doTheParse(file *os.File) (*Header, error) {
 			mtime = binary.BigEndian.Uint32(bin_header.h_mtime)
 			majmin = binary.BigEndian.Uint16(bin_header.h_majmin)
 		}
+
 		m_time = time.Unix(int64(mtime), 0)
-		devmajor = unix.Major(uint64(majmin))
-		devminor = unix.Minor(uint64(majmin))
+		rdevmajor = unix.Major(uint64(majmin))
+		rdevminor = unix.Minor(uint64(majmin))
 	}
 
 	entry = &Header{
-		Typeflag: typeflag,
-		Name:     file_name,
-		Linkname: link_name,
-		Namelen:  name_len,
-		Size:     file_size,
-		Mode:     file_mode,
-		Uid:      file_uid,
-		Gid:      file_gid,
-		ModTime:  m_time,
-		Devmajor: devmajor,
-		Devminor: devminor,
-		Magic:    magic,
-		Format:   header_format,
+		Typeflag:    typeflag,
+		Name:        file_name,
+		Linkname:    link_name,
+		Namelen:     name_len,
+		Size:        file_size,
+		Mode:        file_mode,
+		Uid:         file_uid,
+		Gid:         file_gid,
+		ModTime:     m_time,
+		Devmajor:    devmajor,
+		Devminor:    devminor,
+		RawDevmajor: rdevmajor,
+		RawDevminor: rdevminor,
+		Magic:       magic,
+		Format:      header_format,
 	}
 	return entry, nil
 }
