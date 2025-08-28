@@ -215,6 +215,8 @@ func doTheParse(file *os.File) (*Header, error) {
 			file_gid = int(prcl.OctalToInt(ascii_header.c_gid))
 			file_size = uint64(prcl.OctalToInt(ascii_header.c_filesize))
 			m_time = time.Unix(prcl.OctalToInt(ascii_header.c_mtime), 0)
+			devmaj = uint64(prcl.OctalToInt(ascii_header.c_dev))
+			devmin = devmaj
 			rdevmaj = uint64(prcl.OctalToInt(ascii_header.c_rdev))
 			rdevmin = rdevmaj
 		}
