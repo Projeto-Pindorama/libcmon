@@ -171,3 +171,16 @@ func (f Format) String() string {
 		return "<unknown>"
 	}
 }
+
+func (f Format) HeaderLen() int64 {
+	headerlen := 0
+	switch {
+	case ((f & TYPE_BINARY) != 0):
+		headerlen = 26
+	case ((f & TYPE_OCPIO) != 0):
+		headerlen = 76
+	case ((f & TYPE_NCPIO) != 0 || (f & TYPE_CRC) != 0):
+		headerlen = 110
+	}
+	return int64(headerlen)
+}

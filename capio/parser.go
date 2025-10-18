@@ -13,12 +13,10 @@ package capio
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"os"
 	"time"
 
 	"golang.org/x/sys/unix"
-	"pindorama.net.br/libcmon/bass"
 	"pindorama.net.br/libcmon/porcelana"
 )
 
@@ -74,13 +72,6 @@ func whatHeaderIsIt(buffer []byte) Format {
 
 	/* Modern ascii format and variations. */
 	if bytes.Equal(buffer[:6], MAGIC_ODC) {
-		/* TODO: Special treatment for HEADER_DEC.
-		 * "The DEC format is rubbish." - Gunnar Ritter
-		 *
-		 * if (itsaDEC) {
-		 *	return HEADER_DEC, nil
-		 * }
-		 */
 		return HEADER_ODC
 	} else if bytes.Equal(buffer[:6], MAGIC_CRC) {
 		return HEADER_CRC
@@ -105,39 +96,16 @@ func whatHeaderIsIt(buffer []byte) Format {
  * }
  */
 
-func doTheParse(file *os.File) (*Header, error) {
-	header_len := uint(0)
-	header_end := uint(0)
+func doTheParse(header []byte, headerfmt Format) *Header {
 	entry := &Header{}
 
 	/* Sane way to store raw data. */
 	ascii_header := rawASCIIHeader{}
 	bin_header := rawBINHeader{}
 
-	/*
-	 * TODO: Determine the block size for the
-	 * device in question for more efficience.
-	 */
-	buffer, _, err := bass.Walk(file, 512)
-	if err != nil {
-		return nil, err
-	}
-	header_format := whatHeaderIsIt(buffer)
-
-	if (header_format & TYPE_BINARY) != 0 {
-		header_len = 26
-	} else if (header_format & TYPE_OCPIO) != 0 {
-		header_len = 76
-	} else if (header_format&TYPE_NCPIO) != 0 ||
-		(header_format&TYPE_CRC) != 0 {
-		header_len = 110
-	}
-	header_end = (header_len + uint(bytes.IndexByte(buffer[header_len:], nula)))
-
 	/* These will populate the fields of the Header struct. */
-	header := buffer[:header_len]
 	typeflag := nula
-	file_name := ""
+	file_name := []byte("")
 	link_name := ""
 	name_len := uint16(0)
 	file_size := uint64(0)
@@ -151,13 +119,22 @@ func doTheParse(file *os.File) (*Header, error) {
 	rdevminor := uint32(0)
 	magic := []byte("")
 
-	file_name = string(buffer[header_len:header_end])
+	file_name = header[headerfmt.HeaderLen():(headerfmt.HeaderLen() + int64(bytes.IndexByte(header[headerfmt.HeaderLen():], nula)))]
 	if file_name[(len(file_name)-1)] == '/' {
 		typeflag = TypeDir
 	}
-	switch header_format & TYPE_BINARY {
+
+	switch headerfmt & TYPE_BINARY {
 	case 0: /* ASCII, ODC, CRC, etc. */
 		magic = header[:6]
+
+		/* TODO: Special treatment for HEADER_DEC.
+		 * "The DEC format is rubbish." - Gunnar Ritter
+		 *
+		 * if (itsaDEC) {
+		 *	return HEADER_DEC, nil
+		 * }
+		 */
 
 		/*
 		 * Just used as medium for being passed
@@ -168,7 +145,7 @@ func doTheParse(file *os.File) (*Header, error) {
 		rdevmaj := uint64(0)
 		rdevmin := uint64(0)
 
-		switch header_format & TYPE_OCPIO {
+		switch headerfmt & TYPE_OCPIO {
 		case 0: /* New ASCII/CRC. */
 			ascii_header = rawASCIIHeader{
 				c_inode:     header[6:14],
@@ -248,7 +225,7 @@ func doTheParse(file *os.File) (*Header, error) {
 		mtime := uint32(0)
 		majmin := uint16(0)
 
-		switch header_format & TYPE_BE {
+		switch headerfmt & TYPE_BE {
 		case 0: /* Binary, little endian. */
 			name_len = binary.LittleEndian.Uint16(bin_header.h_namesize)
 			file_mode = os.FileMode(binary.LittleEndian.Uint16(bin_header.h_mode))
@@ -281,7 +258,7 @@ func doTheParse(file *os.File) (*Header, error) {
 
 	entry = &Header{
 		Typeflag:    typeflag,
-		Name:        file_name,
+		Name:        string(file_name),
 		Linkname:    link_name,
 		Namelen:     name_len,
 		Size:        file_size,
@@ -294,15 +271,7 @@ func doTheParse(file *os.File) (*Header, error) {
 		RawDevmajor: rdevmajor,
 		RawDevminor: rdevminor,
 		Magic:       magic,
-		Format:      header_format,
+		Format:      headerfmt,
 	}
-	return entry, nil
-}
-
-func CallFromTest(file *os.File) {
-	entry, err := doTheParse(file)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-	}
-	fmt.Printf("%+v\n", entry)
+	return entry
 }
