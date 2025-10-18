@@ -32,6 +32,7 @@ import (
 )
 
 func readEntry(archive *os.File) (*Header, error) {
+	entry := &Header{}
 	magicbuf, _, err := bass.Walk(archive, 6)
 	if err != nil {
 		return nil, err
@@ -40,18 +41,19 @@ func readEntry(archive *os.File) (*Header, error) {
 
 
 	headerbuf, _, err := bass.Walk(archive, (headerfmt.HeaderLen() - int64(6)))
-	header := append(magicbuf, headerbuf...)
+	entrydata := append(magicbuf, headerbuf...)
 	fname, _, err := bass.WalkTil(nula, archive)
 	if err != nil {
 		return nil, err
 	}
 
 	/* Rebuild the header string. */
-	entrydata := append(header, fname...)
-	entrydata = append(entrydata, nula)
+	
 	fmt.Printf("%s\n", entrydata)
 	fmt.Printf("%o\n", entrydata)
-	return doTheParse(entrydata, headerfmt), nil
+	entry = doTheParse(entrydata, headerfmt)
+	entry.Name = string(fname)
+	return entry, nil
 }
 
 func CallFromTest(file *os.File) {

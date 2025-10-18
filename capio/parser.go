@@ -104,9 +104,6 @@ func doTheParse(header []byte, headerfmt Format) *Header {
 	bin_header := rawBINHeader{}
 
 	/* These will populate the fields of the Header struct. */
-	typeflag := nula
-	file_name := []byte("")
-	link_name := ""
 	name_len := uint16(0)
 	file_size := uint64(0)
 	file_mode := os.FileMode(0)
@@ -118,11 +115,6 @@ func doTheParse(header []byte, headerfmt Format) *Header {
 	rdevmajor := uint32(0)
 	rdevminor := uint32(0)
 	magic := []byte("")
-
-	file_name = header[headerfmt.HeaderLen():(headerfmt.HeaderLen() + int64(bytes.IndexByte(header[headerfmt.HeaderLen():], nula)))]
-	if file_name[(len(file_name)-1)] == '/' {
-		typeflag = TypeDir
-	}
 
 	switch headerfmt & TYPE_BINARY {
 	case 0: /* ASCII, ODC, CRC, etc. */
@@ -257,9 +249,9 @@ func doTheParse(header []byte, headerfmt Format) *Header {
 	}
 
 	entry = &Header{
-		Typeflag:    typeflag,
-		Name:        string(file_name),
-		Linkname:    link_name,
+		Typeflag:    nula,
+		Name:        "",
+		Linkname:    "",
 		Namelen:     name_len,
 		Size:        file_size,
 		Mode:        file_mode,
