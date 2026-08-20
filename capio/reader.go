@@ -19,18 +19,18 @@
 // bass.Walk(f, 0, 0) /* Rewind */
 // }
 
-// Copyright 2009 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package capio 
 
 import (
 	"fmt"
+	//"io"
 	"os"
 	"pindorama.net.br/libcmon/bass"
+
 )
 
+//func readEntry(archive *io.Reader) (*Header, error) {
+// TODO: Remove bass.Walk entirely.
 func readEntry(archive *os.File) (*Header, error) {
 	entry := &Header{}
 	magicbuf, _, err := bass.Walk(archive, 6)
@@ -39,22 +39,34 @@ func readEntry(archive *os.File) (*Header, error) {
 	}
 	headerfmt := whatHeaderIsIt(magicbuf)
 
-
 	headerbuf, _, err := bass.Walk(archive, (headerfmt.HeaderLen() - int64(6)))
 	entrydata := append(magicbuf, headerbuf...)
 	fname, _, err := bass.WalkTil(nula, archive)
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("%#v\n", headerfmt.Limits())
 	/* Rebuild the header string. */
-	
 	fmt.Printf("%s\n", entrydata)
 	fmt.Printf("%o\n", entrydata)
+	whatsTheHeaderType(headerfmt, entrydata)
 	entry = doTheParse(entrydata, headerfmt)
 	entry.Name = string(fname)
 	return entry, nil
 }
+
+// whatsTheHeaderType determines the specific type of the archive,
+// besides whether it is binary (L.E. or B.E.) or ASCII/new cpio.
+func whatsTheHeaderType(base Format, buffer []byte) (error) {
+	fmt.Println(base, len(buffer))
+	return nil
+}
+
+/*
+ * func validateFile(file *os.File) {
+ * }
+ */
+
 
 func CallFromTest(file *os.File) {
 	entry, err := readEntry(file)

@@ -36,13 +36,13 @@ type Format uint
 /* Magic numbers and such. */
 const (
 	MAGIC_BINARY uint16 = 070707
-	//mag_sco = 0x7ffffe00
+	/* mag_sco = 0x7ffffe00 */
 )
 
 var (
-	MAGIC_ASCII = []byte("070701") // ... or 0x303730373031
-	MAGIC_CRC   = []byte("070702") // ... or 0x303730373032
-	MAGIC_ODC   = []byte("070707") // ... or 0x303730373037
+	MAGIC_ASCII = []byte("070701") /* ... or 0x303730373031 */
+	MAGIC_CRC   = []byte("070702") /* ... or 0x303730373032 */
+	MAGIC_ODC   = []byte("070707") /* ... or 0x303730373037 */
 )
 
 const (
@@ -91,6 +91,96 @@ var formatNames = map[Format]string{
 	HEADER_CRAY:   "CRAY",
 	HEADER_CRAY5:  "CRAY5",
 	HEADER_BAR:    "BAR",
+}
+
+type limitTable struct {
+	maxino   uint32
+	fakeino  uint32
+	maxpath  uint16
+	maxsize  uint64
+	maxmajor uint32
+	maxminor uint32
+	maxuid   int
+	maxgid   int
+	maxnlink int64
+	maxrdev  int64
+}
+
+var formatLimits = map[Format]limitTable{
+	HEADER_BINLE: { /* BINBE as.w. */
+		maxino:  0177777,
+		fakeino: 0177777,
+		maxpath: 256,
+		maxsize: 0x7FFFFFFF,
+		maxrdev: 0177777,
+	},
+	HEADER_SGIBE: {
+		/* Same from BIN(BE/LE). */
+		maxino:   0177777,
+		fakeino:  0177777,
+		maxpath:  256,
+		maxuid:   0177777,
+		maxgid:   0177777,
+		maxnlink: 0177777,
+		/* SGI-specific. */
+		maxsize:  0x7FFFFFFFFFFFFFFF,
+		maxmajor: 037777,
+		maxminor: 0777777,
+	},
+	HEADER_ASC: { /* CRC as.w. */
+		maxino:  0xFFFFFFFF,
+		fakeino: 0xFFFFFFFF,
+		maxpath: 1024,
+		/* TYP_SCO (SCOASC/SCOCRC) is 0x7FFFFFFFFFFFFFFF. */
+		maxsize:  0xFFFFFFFF,
+		maxmajor: 0xFFFFFFFF,
+		maxminor: 0xFFFFFFFF,
+		maxuid:   0xFFFFFFFF,
+		maxgid:   0xFFFFFFFF,
+		maxnlink: 0xFFFFFFFF,
+	},
+	HEADER_ODC: {
+		maxino:   0777777,
+		fakeino:  0777777,
+		maxpath:  256,
+		maxsize:  077777777777,
+		maxrdev:  0777777,
+		maxuid:   0777777,
+		maxgid:   0777777,
+		maxnlink: 0777777,
+	},
+	HEADER_DEC: {
+		maxino:   0777777,
+		fakeino:  0777777,
+		maxpath:  256,
+		maxsize:  077777777777,
+		maxmajor: 077777777,
+		maxminor: 077777777,
+		maxuid:   0777777,
+		maxgid:   0777777,
+		maxnlink: 0777777,
+	},
+	HEADER_CRAY: { /* CRAY5 as.w. */
+		maxino:   0xFFFFFFFF,
+		fakeino:  0xFFFFFFFF,
+		maxpath:  0177777, /* SANELIMIT */
+		maxsize:  0x7FFFFFFFFFFFFFFF,
+		maxrdev:  0x7FFFFFFFFFFFFFFF,
+		maxuid:   0x7FFFFFFFFFFFFFFF,
+		maxgid:   0x7FFFFFFFFFFFFFFF,
+		maxnlink: 0x7FFFFFFFFFFFFFFF,
+	},
+	HEADER_BAR: {
+		maxino:  0xFFFFFFFF,
+		fakeino: 0xFFFFFFFF,
+		/* 512 - SIZEOF_bar_header - 1 */
+		maxpath:  512 - 84 - 1,
+		maxsize:  077777777777,
+		maxrdev:  07777777,
+		maxuid:   07777777,
+		maxgid:   07777777,
+		maxnlink: 0x7FFFFFFFFFFFFFFF,
+	},
 }
 
 // Type flags for Header.Typeflag, indicating the
@@ -163,12 +253,21 @@ func (f Format) String() string {
 	 * TODO: Perhaps move this to another file since it
 	 * isn't exactly part of describing the cpio format.
 	 */
-	identifier := f
-	_, ok := formatNames[identifier]
+
+	_, ok := formatNames[f]
 	if ok {
-		return formatNames[identifier]
+		return formatNames[f]
 	} else {
 		return "<unknown>"
+	}
+}
+
+func (f Format) Limits() *limitTable {
+	l, ok := formatLimits[f]
+	if ok {
+		return &l
+	} else {
+		return nil
 	}
 }
 

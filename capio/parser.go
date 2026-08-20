@@ -82,20 +82,6 @@ func whatHeaderIsIt(buffer []byte) Format {
 	return ZILTCH
 }
 
-// whatsTheHeaderType determines the specific type of the archive,
-// besides whether it is binary (L.E. or B.E.) or ASCII/new cpio.
-/*
- * func whatsTheHeaderType(buffer []byte) (error) {
- *
- *
- * }
- */
-
-/*
- * func validateFile(file *os.File) {
- * }
- */
-
 func doTheParse(header []byte, headerfmt Format) *Header {
 	entry := &Header{}
 
@@ -166,6 +152,7 @@ func doTheParse(header []byte, headerfmt Format) *Header {
 			rdevmaj = uint64(prcl.HexaToInt(ascii_header.c_rdevmajor))
 			rdevmin = uint64(prcl.HexaToInt(ascii_header.c_rdevminor))
 		default: /* ODC. */
+
 			ascii_header = rawASCIIHeader{
 				c_dev:      header[6:12],
 				c_inode:    header[12:18],
