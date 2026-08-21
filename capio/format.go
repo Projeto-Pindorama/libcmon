@@ -106,82 +106,121 @@ type limitTable struct {
 	maxrdev  int64
 }
 
-var formatLimits = map[Format]limitTable{
-	HEADER_BINLE: { /* BINBE as.w. */
-		maxino:  0177777,
-		fakeino: 0177777,
-		maxpath: 256,
-		maxsize: 0x7FFFFFFF,
-		maxrdev: 0177777,
-	},
-	HEADER_SGIBE: {
-		/* Same from BIN(BE/LE). */
-		maxino:   0177777,
-		fakeino:  0177777,
-		maxpath:  256,
-		maxuid:   0177777,
-		maxgid:   0177777,
-		maxnlink: 0177777,
-		/* SGI-specific. */
-		maxsize:  0x7FFFFFFFFFFFFFFF,
-		maxmajor: 037777,
-		maxminor: 0777777,
-	},
-	HEADER_ASC: { /* CRC as.w. */
-		maxino:  0xFFFFFFFF,
-		fakeino: 0xFFFFFFFF,
-		maxpath: 1024,
-		/* TYP_SCO (SCOASC/SCOCRC) is 0x7FFFFFFFFFFFFFFF. */
-		maxsize:  0xFFFFFFFF,
-		maxmajor: 0xFFFFFFFF,
-		maxminor: 0xFFFFFFFF,
-		maxuid:   0xFFFFFFFF,
-		maxgid:   0xFFFFFFFF,
-		maxnlink: 0xFFFFFFFF,
-	},
-	HEADER_ODC: {
-		maxino:   0777777,
-		fakeino:  0777777,
-		maxpath:  256,
-		maxsize:  077777777777,
-		maxrdev:  0777777,
-		maxuid:   0777777,
-		maxgid:   0777777,
-		maxnlink: 0777777,
-	},
-	HEADER_DEC: {
-		maxino:   0777777,
-		fakeino:  0777777,
-		maxpath:  256,
-		maxsize:  077777777777,
-		maxmajor: 077777777,
-		maxminor: 077777777,
-		maxuid:   0777777,
-		maxgid:   0777777,
-		maxnlink: 0777777,
-	},
-	HEADER_CRAY: { /* CRAY5 as.w. */
-		maxino:   0xFFFFFFFF,
-		fakeino:  0xFFFFFFFF,
-		maxpath:  0177777, /* SANELIMIT */
-		maxsize:  0x7FFFFFFFFFFFFFFF,
-		maxrdev:  0x7FFFFFFFFFFFFFFF,
-		maxuid:   0x7FFFFFFFFFFFFFFF,
-		maxgid:   0x7FFFFFFFFFFFFFFF,
-		maxnlink: 0x7FFFFFFFFFFFFFFF,
-	},
-	HEADER_BAR: {
-		maxino:  0xFFFFFFFF,
-		fakeino: 0xFFFFFFFF,
-		/* 512 - SIZEOF_bar_header - 1 */
-		maxpath:  512 - 84 - 1,
-		maxsize:  077777777777,
-		maxrdev:  07777777,
-		maxuid:   07777777,
-		maxgid:   07777777,
-		maxnlink: 0x7FFFFFFFFFFFFFFF,
-	},
-}
+var formatLimits = func() map[Format]limitTable {
+	/*
+	 * Using an anonymous function for this feels cursed.
+	 * I could well place this into init()...
+	 */
+	l := map[Format]limitTable{
+		HEADER_BINLE: {
+			maxino:  0177777,
+			fakeino: 0177777,
+			maxpath: 256,
+			maxsize: 0x7FFFFFFF,
+			maxrdev: 0177777,
+		},
+		HEADER_ASC: {
+			maxino:   0xFFFFFFFF,
+			fakeino:  0xFFFFFFFF,
+			maxpath:  1024,
+			maxsize:  0xFFFFFFFF,
+			maxmajor: 0xFFFFFFFF,
+			maxminor: 0xFFFFFFFF,
+			maxuid:   0xFFFFFFFF,
+			maxgid:   0xFFFFFFFF,
+			maxnlink: 0xFFFFFFFF,
+		},
+		HEADER_ODC: {
+			maxino:   0777777,
+			fakeino:  0777777,
+			maxpath:  256,
+			maxsize:  077777777777,
+			maxrdev:  0777777,
+			maxuid:   0777777,
+			maxgid:   0777777,
+			maxnlink: 0777777,
+		},
+		HEADER_CRAY: {
+			maxino:   0xFFFFFFFF,
+			fakeino:  0xFFFFFFFF,
+			maxpath:  0177777, /* SANELIMIT */
+			maxsize:  0x7FFFFFFFFFFFFFFF,
+			maxrdev:  0x7FFFFFFFFFFFFFFF,
+			maxuid:   0x7FFFFFFFFFFFFFFF,
+			maxgid:   0x7FFFFFFFFFFFFFFF,
+			maxnlink: 0x7FFFFFFFFFFFFFFF,
+		},
+		HEADER_BAR: {
+			maxino:  0xFFFFFFFF,
+			fakeino: 0xFFFFFFFF,
+			/* 512 - SIZEOF_bar_header - 1 */
+			maxpath:  512 - 84 - 1,
+			maxsize:  077777777777,
+			maxrdev:  07777777,
+			maxuid:   07777777,
+			maxgid:   07777777,
+			maxnlink: 0x7FFFFFFFFFFFFFFF,
+		},
+	}
+	/*
+	 * Some (pseudo-)magic here to set values for some
+	 * of the cpio format variations properly.
+	 */
+	l[HEADER_BINBE] = l[HEADER_BINLE]
+	l[HEADER_CRC] = l[HEADER_ASC]
+
+	/*
+	 * This is meant for making changes to a specific
+	 * format's limitTable and then transferring
+	 * it to another one, since Go won't let one
+	 * alter a member from a struct inside a map.
+	 * See: https://github.com/golang/go/issues/3117
+	 */
+	temp := limitTable{}
+
+	/*
+	 * SGI uses the same values from BIN(BE/LE),
+	 * but with extensions for supporting separate
+	 * maj/min and larger file sizes.
+	 */
+	temp = l[HEADER_BINLE]
+	temp.maxsize = 0x7FFFFFFFFFFFFFFF
+	temp.maxmajor = 037777
+	temp.maxminor = 0777777
+	l[HEADER_SGIBE] = temp
+
+	/*
+	 * The cpio format on UNICOS 5 (HEADER_CRAY5)
+	 * isn't so different from the new (UNICOS 5)
+	 * besides an undocumented field. Same limits.
+	 */
+	l[HEADER_CRAY5] = l[HEADER_CRAY]
+
+	/*
+	 * UnixWare's cpio just extends the file size
+	 * limit. Similarly to IRIX's, but using
+	 * SVR4 ASCII instead of binary.
+	 */
+	temp = l[HEADER_ASC]
+	temp.maxsize = 0x7FFFFFFFFFFFFFFF
+	l[HEADER_SCOASC] = temp
+	l[HEADER_SCOCRC] = l[HEADER_SCOASC]
+
+	/*
+	 * The said rubbish DEC format is exactly the
+	 * same as POSIX ASCII in terms of limits, but
+	 * it replaces the single 'rdev'
+	 * value with two separate values for major
+	 * and minor.
+	 */
+	temp = l[HEADER_ODC]
+	temp.maxrdev = 0
+	temp.maxmajor = 077777777
+	temp.maxminor = 077777777
+	l[HEADER_DEC] = temp
+
+	return l
+}()
 
 // Type flags for Header.Typeflag, indicating the
 // type of header's content.
