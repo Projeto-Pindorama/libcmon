@@ -1,7 +1,7 @@
 /*
  * capio/format.go - Programmatical description of the cpio format
  *
- * Copyright (C) 2025: Pindorama
+ * Copyright (C) 2026: Pindorama
  *		Luiz Antônio Rangel (takusuman)
  *
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -162,6 +162,7 @@ var formatLimits = func() map[Format]limitTable {
 			maxnlink: 0x7FFFFFFFFFFFFFFF,
 		},
 	}
+
 	/*
 	 * Some (pseudo-)magic here to set values for some
 	 * of the cpio format variations properly.
