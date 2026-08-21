@@ -188,7 +188,8 @@ var formatLimits = func() map[Format]limitTable {
 	temp.maxsize = 0x7FFFFFFFFFFFFFFF
 	temp.maxmajor = 037777
 	temp.maxminor = 0777777
-	l[HEADER_SGIBE] = temp
+	l[HEADER_SGILE] = temp
+	l[HEADER_SGIBE] = l[HEADER_SGILE]
 
 	/*
 	 * The cpio format on UNICOS 5 (HEADER_CRAY5)
